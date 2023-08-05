@@ -12,8 +12,4 @@ sheets = ['Orders_dataframe', 'Sets_dataframe']
 
 dataframes = Data_Reader('EW', path).read_all_dataframes(sheets)
 for df in dataframes:
-    if isinstance(df, pd.DataFrame):
-        print(df)
-    else:
-        print(False)
-    print(type(df))
+    print(df)
