@@ -8,7 +8,7 @@ class Data_Reader:
     """The Data_Reader class is for reading all the dataframes in a ExcelFile in a given path (to the excelfile). 
     This can be done with the method: "read_all_dataframes".
     """
-    def __init__(self, name_excel_file: str, path_excel_file: str): #FIXME: Add class ExcelFile input.
+    def __init__(self, name_excel_file: str, path_excel_file: str): #FIXME: Add class ExcelFile input, is this benefitial? add - ':ExcelFile'
         """This is a constructor for a Data_Reader.
 
         Args:
@@ -63,9 +63,9 @@ class Data_Reader:
         # Give the user a pop up message if sheet_name(s) are not found.
         if given_sheets_not_in_excel_file: # If given_sheets_not_in_excel_file is not None then: (thus if there are sheets that are not found in the Excelfile)
             if given_sheets_in_excel_file: # If given_sheets_in_excel_file is not None then: (thus if there are sheets that are found in the ExcelFile)
-                message = f'The following sheets: {given_sheets_not_in_excel_file} were not found in the Excel file in the path: {self.path_excel_file}'
+                message = f'WARNING: \n\n The following sheets: \n\n {given_sheets_not_in_excel_file} \n\n Were not found in the Excel file in the Path: \n\n {self.path_excel_file}'
             else:
-                message = f'None of the sheets in: {sheet_names_to_read} were found in the Excel file in the path: {self.path_excel_file}'
+                message = f'WARNING: \n\n None of the sheets in: \n\n {sheet_names_to_read} \n\n Were found in the Excel file in the Path: \n\n {self.path_excel_file}'
             # Show a pop-up message box to the user
             root = tk.Tk()
             root.withdraw()  # Hide the main window

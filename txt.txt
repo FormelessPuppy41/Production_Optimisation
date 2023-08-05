@@ -1,0 +1,14 @@
+def __init__(self, name_excel_file: str, path_excel_file: str, dataframe_name: str, excel_sheet_name: str):
+        """This is the constructor of the Dataframe_Cleaner.
+
+        Args:
+            name_excel_file (str): Name of the ExcelFile
+            path_excel_file (str): Path to the ExcelFile
+            dataframe_name (str): Name of the Dataframe
+            excel_sheet_name (str): Name of the sheet which containts the Dataframe
+        """
+        super().__init__(name_excel_file=name_excel_file, path_excel_file=path_excel_file, dataframe_name=dataframe_name)
+        
+        self.name_excel_file = name_excel_file
+        self.path_excel_file = path_excel_file
+        self.excel_sheet_name = excel_sheet_name
