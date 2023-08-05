@@ -1,32 +1,39 @@
 import pandas as pd
 
 from data import data_helpers
-
-# Make subclasses or 'sub'functions that call the functions in this class to clean them, 
-# this way there is a distinction between different df's possible that require certain functions. 
-# if you decide to make subfunction then this could be done in a new module named data_cleaning.py which imports this class
-# and is called from data
+from data.dataframe import Dataframe
 
 class Dataframe_Cleaner:
     """The Dataframe_Cleaner class is for cleaning dataframes.
     """
-    
-    def __init__(self, pandas_df: pd.DataFrame):
-        self.pandas_df = pandas_df
+    def __init__(self, dataframe: Dataframe):
+        self.dataframe = dataframe
+        self.pandas_df = self.dataframe.get_pandas_dataframe()
+
+    def clean_index_sets_elements(self, element):
+        """Cleans the elements in a index list. Only apply this function on index lists. 
+        Because if the list has floats with non zero decimals, then those decimals are neglected by the int() function.
+
+        Args:
+            element (_type_): Element to be cleaned from index list
+
+        Returns:
+            'cleaned element': Either a cleaned element or nothing if the element is None/''
+        """
+        if element: # Removes Empty / None elements.
+            if pd.notna(element) and isinstance(element, str):
+                return element.upper()
+            elif pd.notna(element) and isinstance(element, pd.Timestamp):
+                return element
+            elif pd.notna(element) and isinstance(element, float):
+                return int(element)
+        else:
+            return element     
 
 
-    def get_index_sets_from_dataframe(self):
-        #TODO: 1 - which cleaning process: Only for the index dataframe.
-
-        pd_df = self.pandas_df
-        columns = pd_df.columns
-
-        index_lists = []
-        for col in columns:
-            data_series = pd_df[col]
-            data_list = data_series.to_list()
-
-            cleaned_list = [data_helpers.clean_index_set_element(elem) for elem in data_list if elem]
-
-            index_lists.append(cleaned_list)
-        return index_lists
+    def clean_orders_elements(self, element, columns):
+        if element: 
+            if pd.notna(element) and isinstance(element, str) and element.name in columns:
+                return element.upper()
+        else:
+            return element     

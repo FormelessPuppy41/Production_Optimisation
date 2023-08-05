@@ -1,0 +1,15 @@
+
+
+The current flow is a follows:
+
+data_reader is the starting point for reading
+    - It creates a ExcelFile during initialisation with the help of the input in data_reader (path and filename)
+    - When the 'read_all_dataframes' method is called then a list of Dataframe's is made and returned.
+
+data_cleaner is the starting point for cleaning
+    - It uses the individual functions defined in dataframe_cleaner to make functions that clean specific Dataframes.
+    
+dataframe_cleaner is the starting point for cleaning
+    - This class is a grouping of all individual functions that can clean a Dataframe.
+    - These functions are used in data_df_cleaner to make a cleaning process for individual dataframes.
+

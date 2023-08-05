@@ -1,5 +1,6 @@
 import tkinter as tk
 from tkinter import messagebox
+from typing import List
 
 from data.excel_file import ExcelFile
 from data.dataframe import Dataframe
@@ -19,9 +20,10 @@ class Data_Reader:
         self.path_excel_file = path_excel_file
 
         self.excel_file = ExcelFile(name_excel_file=name_excel_file, path_excel_file=path_excel_file)
+        self.dataframes: List[Dataframe] = []
 
 
-    def read_all_dataframes(self, sheet_names_to_read: list) -> list:
+    def read_all_dataframes(self, sheet_names_to_read: list):
         """This is a function that reads all sheets in the Excel_File that are in the {sheet_names_to_read} list.
         IF a sheet or multiple sheets are not found in the Excel_File then the user gets an error message stating which sheet(s) are not found.
         Then the user can try to fix the error.
@@ -33,8 +35,6 @@ class Data_Reader:
             ValueError: If non of the sheets are found in the Excel_File then there is a ValueError being thrown, which gives the
             message that non of the sheets are found in the File.
 
-        Returns:
-            list of pandas.DataFrame: A list with all the read Dataframes.
         """
         sheet_names = self.excel_file.get_sheet_names()
 
@@ -50,15 +50,6 @@ class Data_Reader:
         
         if given_sheets_in_excel_file is None:
             raise ValueError(f'None of the given sheet names in: {sheet_names_to_read} \n are in the Excel file: {self.excel_file} \n in the path: {self.path_excel_file}')
-        
-        # Reading the Dataframes and adding them to the dataframes list.
-        dataframes = []
-        for sheet in given_sheets_in_excel_file:
-            dataframe = Dataframe(
-                name_excel_file=self.name_excel_file, path_excel_file=self.path_excel_file, 
-                dataframe_name=f'{sheet}', excel_sheet_name=sheet
-                ).get_pandas_dataframe()
-            dataframes.append(dataframe)
 
         # Give the user a pop up message if sheet_name(s) are not found.
         if given_sheets_not_in_excel_file: # If given_sheets_not_in_excel_file is not None then: (thus if there are sheets that are not found in the Excelfile)
@@ -70,5 +61,22 @@ class Data_Reader:
             root = tk.Tk()
             root.withdraw()  # Hide the main window
             messagebox.showwarning('Missing Sheets:', message)
+        
 
-        return dataframes
+        # Reading the Dataframes and adding them to the dataframes list.
+        dataframes = []
+        for sheet in given_sheets_in_excel_file:
+            
+            dataframe = Dataframe(
+                excel_file=self.excel_file, dataframe_name=f'{sheet}', excel_sheet_name=sheet
+                )
+            
+            dataframes.append(dataframe)
+
+        self.dataframes = dataframes
+
+    def get_dataframes(self) -> List[Dataframe]:
+        if self.dataframes:
+            return self.dataframes
+        else:
+            raise ValueError(f'Dataframes have not yet been read. First use read_all_dataframes() before calling get_dataframes()')
