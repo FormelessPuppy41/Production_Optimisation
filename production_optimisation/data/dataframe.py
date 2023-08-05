@@ -1,7 +1,7 @@
 import pandas as pd
 import openpyxl
 
-from data.excel_file import ExcelFile
+from data.data_excel_file import ExcelFile
 
 class Dataframe:
     """The Dataframe class is for dataframes that are read from the (parent class) ExcelFile. 

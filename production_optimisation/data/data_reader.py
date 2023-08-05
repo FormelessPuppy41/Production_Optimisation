@@ -2,14 +2,14 @@ import tkinter as tk
 from tkinter import messagebox
 from typing import List
 
-from data.excel_file import ExcelFile
+from data.data_excel_file import ExcelFile
 from data.dataframe import Dataframe
 
 class Data_Reader:
     """The Data_Reader class is for reading all the dataframes in a ExcelFile in a given path (to the excelfile). 
     This can be done with the method: "read_all_dataframes".
     """
-    def __init__(self, name_excel_file: str, path_excel_file: str): #FIXME: Add class ExcelFile input, is this benefitial? add - ':ExcelFile'
+    def __init__(self, name_excel_file: str, path_excel_file: str):
         """This is a constructor for a Data_Reader.
 
         Args:
@@ -61,7 +61,6 @@ class Data_Reader:
             root = tk.Tk()
             root.withdraw()  # Hide the main window
             messagebox.showwarning('Missing Sheets:', message)
-        
 
         # Reading the Dataframes and adding them to the dataframes list.
         dataframes = []
@@ -75,7 +74,16 @@ class Data_Reader:
 
         self.dataframes = dataframes
 
+
     def get_dataframes(self) -> List[Dataframe]:
+        """Gets the read dataframes, gives back ValueError if they have not been read yet.
+
+        Raises:
+            ValueError: Indicates that the dataframes have not yet been used.
+
+        Returns:
+            List[Dataframe]: List of the Dataframe's
+        """
         if self.dataframes:
             return self.dataframes
         else:
