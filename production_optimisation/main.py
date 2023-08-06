@@ -27,7 +27,6 @@ read2 = Data_Reader('EW', path_to_excel)
 read2.read_all_dataframes(sheets_to_read)
 dataframes = read2.get_dataframes()
 
-# TODO fix that the sheets_to_read gets stored somewhere, because i believe that it gets called repeatedly. But the problem could also be somewhere else.
 
 for df in dataframes:
     Data_Cleaner(df).clean_dfs(df_helper_read_sheets)
@@ -38,5 +37,3 @@ print()
 print([dfs.get_pandas_dataframe() for dfs in dataframes])
 
 
-#TODO: 1 - which cleaning process: How to check that the inputted df is actually the lists df? \\
-        # Perhaps creating a dictionary in excel which shows which file goes through which process.

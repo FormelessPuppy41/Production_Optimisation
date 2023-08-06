@@ -19,7 +19,10 @@ class Data_Cleaner:
 
 
     # Main function that cleans the different types of dataframes
-    def clean_dfs(self, df_helper_read_sheets: Dataframe):
+    def clean_dfs(self, df_helper_read_sheets: Dataframe): 
+        #FIXME: indexsets/Uppercase in columns, It might be usefull to add a cleaner that changes columns and indices to upper \
+        # if they have the label where they have index sets in the df. but this is easier to check whether all the inputted \
+        # values in the indexsetdf is uppercase, being both here and in excel everything comes from that df or the ordersdf
         """Applies a cleaning process based on the type of the dataframe.
         """
         sheet_type = df_helper_read_sheets.get_pandas_dataframe().loc[self.dataframe.excel_sheet_name].iloc[0]
@@ -114,7 +117,7 @@ class Data_Cleaner:
         """Changes the index of a dataframe to the first column.
         """
         
-        if self.pandas_df.empty:
+        if not self.pandas_df.empty:
             columns = self.pandas_df.columns
             self.pandas_df = self.pandas_df.set_index(columns[0])
 

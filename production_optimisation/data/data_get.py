@@ -19,8 +19,6 @@ class Dataframe_Get:
 
 
     def get_index_sets_from_dataframe(self):
-            #TODO: 1 - which cleaning process: Only for the index dataframe.
-
             pd_df = self.pandas_df
             columns = pd_df.columns
 
