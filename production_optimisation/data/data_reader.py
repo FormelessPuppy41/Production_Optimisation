@@ -1,9 +1,12 @@
 import tkinter as tk
 from tkinter import messagebox
 from typing import List
+import pandas as pd
 
 from data.data_excel_file import ExcelFile
 from data.dataframe import Dataframe
+from general_configuration import sheet_types
+
 
 class Data_Reader:
     """The Data_Reader class is for reading all the dataframes in a ExcelFile in a given path (to the excelfile). 
@@ -69,6 +72,7 @@ class Data_Reader:
             dataframe = Dataframe(
                 excel_file=self.excel_file, dataframe_name=f'{sheet}', excel_sheet_name=sheet
                 )
+            dataframe.read_excel_dataframe()
             
             dataframes.append(dataframe)
 
@@ -88,3 +92,35 @@ class Data_Reader:
             return self.dataframes
         else:
             raise ValueError(f'Dataframes have not yet been read. First use read_all_dataframes() before calling get_dataframes()')
+        
+    
+    def get_sheets_to_read(self, df_with_sheets: Dataframe) -> List[str]:
+        """This function can be called after reading the 'helper_read_sheets' dataframe. 
+        The sheets in the dataframe are then selected in this function based on whether they should be read or not. 
+
+        Args:
+            df_with_sheets (Dataframe): Dataframe with ALL sheets of the excelfile as index, and the type of the sheet as value.
+
+        Raises:
+            KeyError: If the index of df_with_sheets does NOT correspond with all the sheetnames in the excelfile.
+
+        Returns:
+            List[str]: List of sheets that need to be read.
+        """
+        ef_sheets = df_with_sheets.get_excel_file().get_pandas_excel_file().sheet_names
+        pandas_df_with_sheets = df_with_sheets.get_pandas_dataframe()
+        sheet_names_index = pandas_df_with_sheets.index
+        
+        if (ef_sheets == sheet_names_index).all():
+            sheets_to_read = []
+
+            for sheet in sheet_names_index:
+                if pandas_df_with_sheets.loc[sheet].iloc[0] != sheet_types.get('dont_read'):
+                    sheets_to_read.append(sheet)
+
+            return sheets_to_read
+        else:
+            raise KeyError(f'The df_with_sheets: {df_with_sheets} does not correspond with the sheetnames in the Excelfile. \
+                           To solve: Check that the right dataframe is given as argument, that is a dataframe with all the sheet names of the excel file as index, and the sheet type as value, \
+                           OR Check that the input in the excel file is correct, that is that all sheets (and hidden sheets) are inputted in Config_main')
+

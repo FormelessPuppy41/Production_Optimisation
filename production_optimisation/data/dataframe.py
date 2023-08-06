@@ -57,7 +57,7 @@ class Dataframe:
         Raises:
             KeyError: Indicated that the sheet is not found in the sheets of the ExcelFile
         """
-        #FIXME: Add something that distinguishes between different type of df sheets, for example the config_availability has index on 1. 
+        #FIXME: Add something that distinguishes between different type of df sheets, for example the config_availability has index on 1. Here comes the if statement for sheets that should be read. before this there should be a function that seperates sheets that should or should not be read. 
 
         if self.check_sheet_name_in_excelfile():
             self.pandas_dataframe = pd.read_excel(
@@ -104,3 +104,11 @@ class Dataframe:
         """
         self.pandas_dataframe = new_pandas_df
 
+
+    def get_excel_file(self) -> ExcelFile:
+        """Gets the ExcelFile in which the dataframe is placed.
+
+        Returns:
+            ExcelFile: The ExcelFile in which the dataframe is placed.
+        """
+        return self.excel_file
