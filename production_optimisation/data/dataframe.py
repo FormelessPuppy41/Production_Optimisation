@@ -15,8 +15,8 @@ class Dataframe:
         Args:
             name_excel_file (str): Name of the ExcelFile
             path_excel_file (str): Path to the ExcelFile
-            dataframe_name (str): Name of the Dataframe
-            excel_sheet_name (str): Name of the sheet which contains the Dataframe
+            dataframe_name (str): Name of the Dataframe // Often equal to sheet_name except if the dataframe is build.
+            excel_sheet_name (str or None): Name of the sheet which contains the Dataframe: None if dataframe is build, thus does not have it's own sheet.
         """ 
         self.dataframe_name = dataframe_name
         self.excel_sheet_name = excel_sheet_name
@@ -42,9 +42,15 @@ class Dataframe:
     def check_sheet_name_in_excelfile(self) -> bool:
         """Checks whether {self.excel_sheet_name} is inside the sheets of the parent ExcelFile.
 
+        Raises:
+            ValueError: Dataframe does not have it's own sheet: Probably a build Dataframe
+        
         Returns:
             bool: True or False // Is inside the parent ExcelFile or not
         """
+        if self.excel_sheet_name is None:
+            raise ValueError("DataFrame does not have its own sheet in the Excel file.")
+
         if self.excel_sheet_name in self.pandas_excel_file.sheet_names:
             return True
         else:
@@ -56,7 +62,11 @@ class Dataframe:
 
         Raises:
             KeyError: Indicated that the sheet is not found in the sheets of the ExcelFile
+            ValueError: Dataframe does not have it's own sheet: Probably a build Dataframe
         """
+        if self.excel_sheet_name is None:
+            raise ValueError("DataFrame does not have its own sheet in the Excel file.")
+        
         if self.check_sheet_name_in_excelfile():
             self.pandas_dataframe = pd.read_excel(
                 io=self.excel_file.get_path_excel_file(),
