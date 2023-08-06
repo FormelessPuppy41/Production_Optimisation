@@ -22,6 +22,8 @@ class Dataframe:
         self.excel_sheet_name = excel_sheet_name
         self.excel_file = excel_file
 
+        self.excel_file_path = self.excel_file.get_path_excel_file()
+
         self.pandas_excel_file = excel_file.get_pandas_excel_file()
         self.pandas_dataframe = pd.DataFrame
 
@@ -55,6 +57,8 @@ class Dataframe:
         Raises:
             KeyError: Indicated that the sheet is not found in the sheets of the ExcelFile
         """
+        #FIXME: Add something that distinguishes between different type of df sheets, for example the config_availability has index on 1. 
+
         if self.check_sheet_name_in_excelfile():
             self.pandas_dataframe = pd.read_excel(
                 io=self.excel_file.get_path_excel_file(),

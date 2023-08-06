@@ -18,6 +18,16 @@ class Data_Cleaner:
         self.pandas_df = self.dataframe.get_pandas_dataframe()
 
 
+    # Clean functions for the actual dataframes.
+    def clean_helper_read_sheets_df(self):
+        """Function to clean the helper_read_sheets dataframe.
+        """
+        columns = self.pandas_df.columns
+        self.pandas_df = self.pandas_df.set_index(columns[0])
+
+        self.dataframe.change_pandas_dataframe(self.pandas_df)
+
+
     def clean_index_sets_df(self):
         """Function to clean the index_sets_dataframe
         """
@@ -34,7 +44,6 @@ class Data_Cleaner:
         """
         if not self.dataframe.get_cleaned_status():
             self.columns_to_clean = self.pandas_df.columns.drop(description_order_df)
-            print(self.columns_to_clean)
 
             for col in self.pandas_df.columns:
                 self.pandas_df[col] = self.pandas_df[col].apply(lambda x: self.clean_orders_elements(x, col))

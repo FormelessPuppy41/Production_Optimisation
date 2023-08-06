@@ -5,10 +5,17 @@ from data.dataframe import Dataframe
 
 
 class Dataframe_Get:
+    def get_dataframes_to_read():
+         pass
 
     def __init__(self, dataframe: Dataframe):
         self.dataframe = dataframe,
         self.pandas_dataframe = dataframe.get_pandas_dataframe()
+
+
+
+
+
 
 
     def get_index_sets_from_dataframe(self):
