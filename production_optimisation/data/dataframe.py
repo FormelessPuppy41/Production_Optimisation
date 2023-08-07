@@ -120,3 +120,10 @@ class Dataframe:
             ExcelFile: The ExcelFile in which the dataframe is placed.
         """
         return self.excel_file
+    
+    
+    def create_copy_for_new_dataframe(self, new_dataframe_name: str):
+        new_df = Dataframe(self.excel_file, new_dataframe_name, None)
+        new_df.change_pandas_dataframe(self.get_pandas_dataframe())
+        return new_df
+

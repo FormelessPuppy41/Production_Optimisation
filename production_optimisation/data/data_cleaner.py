@@ -28,7 +28,7 @@ class Data_Cleaner:
         sheet_type = df_helper_read_sheets.get_pandas_dataframe().loc[self.dataframe.excel_sheet_name].iloc[0]
         if sheet_type == sheet_types.get('index_in_col_A'):
             self.change_df_index_to_one()
-        elif sheet_type == sheet_types.get('orders'):
+        elif sheet_type == sheet_types.get('orders'): # FIXME: Orders Index, Possibly change this such that tis also gets the first column as index, but then also change it in data_builder.
             self.clean_order_df()
         elif sheet_type == sheet_types.get('index_sets'):
             self.clean_index_sets_df()

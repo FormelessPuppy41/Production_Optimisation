@@ -13,10 +13,25 @@ sheet_types = {'dont_read': 'df_dont_read',
 description_order_df = 'Description' # in cleaning the description columns of the orders dataframe should not be 'cleaned' that is turned to uppercase, because then the description might become unreadable.
 
 
-all_dataframes = {
+all_dataframes = { # 'in code name of dataframe': 'in stored dataframes name of dataframe'
     'helper_read_dfs': 'helper_read_sheets',
-    'Orders_df': 'Orders_dataframe',
-    'Index_sets_df': 'Index_sets_dataframe',
+    'orders_df': 'Orders_dataframe',
+    'index_sets_df': 'Index_sets_dataframe',
     'availability_df': 'Config_availability',
     'skills_df': 'Config_skills',
+    'time_req_df': 'Time_required_per_order',
+    'specific_line_df': 'Production_specific_line',
+    'dates_df': 'dates_start_deadline',
+    'suborders_df': 'Next_prev_suborder',
+    'revenue_df': 'Revenue'
 } #FIXME: Automate? use info of Dataframe, for example sheetname = str or none and/or dfname to fill this dictionary.
+
+data_builder_columns = {
+    'dates': ['Date_start', 'Date_deadline'],
+    'time': ['Time_hours_lowerbound', 'Time_hours_upperbound'],
+    'specific_line': ['Production_line_specific_line'],
+    'next_prev_suborder': ['Previous_sub_order', 'Next_sub_order'], 
+    'urgency': ['Manual_urgency'],
+    'percentage': ['Percentage_prev_sub_order_needed_before_next_sub_order'],
+    'revenue': ['Revenue']
+}
