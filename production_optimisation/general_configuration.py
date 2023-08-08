@@ -12,7 +12,6 @@ sheet_types = {'dont_read': 'df_dont_read',
 
 description_order_df = 'Description' # in cleaning the description columns of the orders dataframe should not be 'cleaned' that is turned to uppercase, because then the description might become unreadable.
 
-
 all_dataframes = { # 'in code name of dataframe': 'in stored dataframes name of dataframe'
     'helper_read_dfs': 'helper_read_sheets',
     'orders_df': 'Orders_dataframe',
@@ -34,4 +33,12 @@ data_builder_columns = {
     'urgency': ['Manual_urgency'],
     'percentage': ['Percentage_prev_sub_order_needed_before_next_sub_order'],
     'revenue': ['Revenue']
+}
+
+data_indexes_columns = { # Column titles of index sets.
+    'time': 'Time_intervals',
+    'orders': 'Orders',
+    'suborders': 'Sub_orders',
+    'employees': 'Employees',
+    'lines': 'Production_lines'
 }

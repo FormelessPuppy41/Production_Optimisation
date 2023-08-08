@@ -1,4 +1,5 @@
 import pandas as pd
+import contextlib
 
 from data.dataframe import Dataframe
 from general_configuration import description_order_df, sheet_types
@@ -25,13 +26,20 @@ class Data_Cleaner:
         # values in the indexsetdf is uppercase, being both here and in excel everything comes from that df or the ordersdf
         """Applies a cleaning process based on the type of the dataframe.
         """
-        sheet_type = df_helper_read_sheets.get_pandas_dataframe().loc[self.dataframe.excel_sheet_name].iloc[0]
-        if sheet_type == sheet_types.get('index_in_col_A'):
-            self.change_df_index_to_one()
-        elif sheet_type == sheet_types.get('orders'): # FIXME: Orders Index, Possibly change this such that tis also gets the first column as index, but then also change it in data_builder.
-            self.clean_order_df()
-        elif sheet_type == sheet_types.get('index_sets'):
-            self.clean_index_sets_df()
+        if not self.dataframe.get_cleaned_status():
+            try:
+                sheet_type = df_helper_read_sheets.get_pandas_dataframe().loc[self.dataframe.excel_sheet_name].iloc[0]
+            except:
+                sheet_type = None
+                print(f'{self.dataframe.get_pandas_dataframe} cannot find a excel_sheet_name')
+                pass
+            if sheet_type == sheet_types.get('index_in_col_A'):
+                self.change_df_index_to_one()
+            elif sheet_type == sheet_types.get('orders'): # FIXME: Orders Index, Possibly change this such that tis also gets the first column as index, but then also change it in data_builder.
+                self.clean_order_df()
+                self.change_df_index_to_one()
+            elif sheet_type == sheet_types.get('index_sets'):
+                self.clean_index_sets_df()
 
 
 
@@ -62,8 +70,7 @@ class Data_Cleaner:
 
             for col in self.pandas_df.columns:
                 self.pandas_df[col] = self.pandas_df[col].apply(lambda x: self.clean_orders_elements(x, col))
-            #self.pandas_df = self.pandas_df.apply(lambda col: col.apply(lambda x: self.clean_orders_elements(x, self.columns_to_clean) if pd.notna(x) else x))
-    
+            
             self.dataframe.change_pandas_dataframe(self.pandas_df)
             self.dataframe.change_status_to_cleaned()
 

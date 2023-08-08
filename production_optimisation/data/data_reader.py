@@ -120,7 +120,7 @@ class Data_Reader:
 
             return sheets_to_read
         else:
-            raise KeyError(f'The df_with_sheets: {df_with_sheets} does not correspond with the sheetnames in the Excelfile. \
+            raise KeyError(f'The df_with_sheets: {df_with_sheets.get_pandas_dataframe()} does not correspond with the sheetnames in the Excelfile. \
                            To solve: Check that the right dataframe is given as argument, that is a dataframe with all the sheet names of the excel file as index, and the sheet type as value, \
                            OR Check that the input in the excel file is correct, that is that all sheets (and hidden sheets) are inputted in Config_main')
 

@@ -5,6 +5,8 @@ from typing import List
 from data.dataframe import Dataframe
 from data.dataframes import Dataframes
 from data.data_cleaner import Data_Cleaner
+from data.data_index import Data_Index
+
 from general_configuration import all_dataframes, data_builder_columns
 
 class Data_Builder:
@@ -32,7 +34,7 @@ class Data_Builder:
     def build_new_df_column_based(self, new_dataframe_name: str, data_builder_col: str):
         if self.orders_found:
             copy_orders_df = self.orders_df.create_copy_for_new_dataframe(new_dataframe_name)
-            Data_Cleaner(copy_orders_df).change_df_index_to_one() #FIXME: orders index.
+            #Data_Cleaner(copy_orders_df).change_df_index_to_one() #FIXME: orders index.
 
             copy_orders_pandas_df = copy_orders_df.get_pandas_dataframe()
 
@@ -68,10 +70,43 @@ class Data_Builder:
     def build_revenue_df(self,column_names: str):
         pass
 
-    def build_penalty_df(self, column_names: str):
-        dates_df = self.dataframes_class.get_dataframe_by_name('dates_df').get_pandas_dataframe()
-        revenue_df = self.dataframes_class.get_dataframe_by_name('revenue_df').get_pandas_dataframe()
-        time_req_df = self.dataframes_class.get_dataframe_by_name('time_req_df').get_pandas_dataframe()
+    def build_penalty_df(self):
+        dates_df = self.dataframes_class.get_dataframe_by_name(all_dataframes.get('dates_df')).get_pandas_dataframe()
+        revenue_df = self.dataframes_class.get_dataframe_by_name(all_dataframes.get('revenue_df')).get_pandas_dataframe()
+        time_req_df = self.dataframes_class.get_dataframe_by_name(all_dataframes.get('time_req_df')).get_pandas_dataframe()
         
-        #see excel. penalty function.
+        time_index = Data_Index(self.dataframes_class).get_index_set('time')
+        orders_index = Data_Index(self.dataframes_class).get_orders_set()
+
+        penalty_df = pd.DataFrame(index=time_index, columns=orders_index)
+
+        for ti in time_index:
+            for order in orders_index:
+                penalty_df.loc[ti, order] = self.calc_penalty(ti=ti, order=order, dates_df=dates_df, revenue_df=revenue_df, time_req_df=time_req_df)
+
+        penalty = Dataframe(self.excel_file, 'penalty', None)
+        penalty.change_pandas_dataframe(penalty_df)
+
+        self.dataframes_class.append_dataframe(penalty)
+
+
+    @staticmethod
+    def calc_penalty(ti:pd.Timestamp, order: str, dates_df: pd.DataFrame, revenue_df: pd.DataFrame, time_req_df: pd.DataFrame):
+        date_start = dates_df.loc[order].iloc[0]
+        date_deadline = dates_df.loc[order].iloc[1]
+        revenue = revenue_df.loc[order].iloc[0]
+        time_req_lb = time_req_df.loc[order].iloc[0]
+        time_req_ub = time_req_df.loc[order].iloc[1]
+
+        start_penalty = True if ti >= date_start else False
+        penalty = 50
+
+        if start_penalty:
+            start_now = (ti-date_start)/pd.Timedelta('1D')
+            deadline_now = (date_deadline - ti) / pd.Timedelta('1D')
+            multiply_now = 4 * ((ti - pd.Timestamp('1900-01-01'))/ pd.Timedelta('1D'))
+            exp_val = deadline_now/multiply_now
+    
+            penalty = start_now + math.exp(exp_val) + math.log(revenue)
         
+        return penalty

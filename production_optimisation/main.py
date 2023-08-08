@@ -23,7 +23,7 @@ dataframes_read1.clean_dataframes(helper_read_sheets_df)
 sheets_to_read = read1.get_sheets_to_read(helper_read_sheets_df)
 
 
-print('******************')
+print('********************')
 
 
 # Reading all the informative sheets: 'read2'
@@ -37,11 +37,9 @@ for df in dataframes:
     Data_Cleaner(df).clean_dfs(helper_read_sheets_df)
 
 
-print([dfs.get_name_dataframe() for dfs in dataframes])
-
 dataframes_read2 = Dataframes(dataframes=dataframes)
 
-print("*********************")
+print("********************")
 
 #FIXME: Dictionary: Create a dictionary that 'applies' both, then this can probably be moved to a 'build_all()' function, instead of calling individually.
 Data_Builder(dataframes_read2).build_new_df_column_based(all_dataframes.get('time_req_df'), 'time') 
@@ -50,7 +48,8 @@ Data_Builder(dataframes_read2).build_new_df_column_based(all_dataframes.get('dat
 Data_Builder(dataframes_read2).build_new_df_column_based(all_dataframes.get('suborders_df'), 'next_prev_suborder')
 Data_Builder(dataframes_read2).build_new_df_column_based(all_dataframes.get('revenue_df'), 'revenue')
 
-
+print("********************")
+Data_Builder(dataframes_read2).build_penalty_df()
 
 
 

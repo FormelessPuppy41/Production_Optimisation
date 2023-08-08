@@ -32,8 +32,10 @@ class Dataframes:
         
         raise KeyError(f'The given dataframe_name {dataframe_name} cannot be found in the dataframes {self.dataframes}')
 
+
     def get_dataframe_by_index(self, index: int) -> Dataframe:
         return self.dataframes[index]
+
 
     def clean_dataframes(self, df_helper_read_sheets: Dataframe):
         """Cleans all the Dataframes in the list of Dataframes.
