@@ -51,6 +51,7 @@ class Data_process:
         Data_Builder(self.dataframes).build_new_df_column_based(all_dataframes.get('dates_df'), 'dates')
         Data_Builder(self.dataframes).build_new_df_column_based(all_dataframes.get('suborders_df'), 'next_prev_suborder')
         Data_Builder(self.dataframes).build_new_df_column_based(all_dataframes.get('revenue_df'), 'revenue')
+        Data_Builder(self.dataframes).build_new_df_column_based(all_dataframes.get('order_specific_df'), 'specific_orders')
         Data_Builder(self.dataframes).build_penalty_df()
         Data_Builder(self.dataframes).build_complete_index_sets_df()
         

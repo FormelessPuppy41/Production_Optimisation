@@ -1,6 +1,7 @@
 import pulp
 
 from data.data_process import Data_process
+from problem_declaration.modeltry import EWOptimisation
 from problem_declaration.optimization_model import Optimization_Model
 
 import pandas as pd
@@ -13,6 +14,8 @@ process.process_helper_read_sheets('EW_initial')
 process.process_read_dataframes('EW_read')
 process.process_build_dataframes()
 
-
+ewOpt = EWOptimisation(process.dataframes)
+ewOpt.createModel()
+#ewOpt.solve()
 # Optimization_Model('EW_min', pulp.LpMinimize)
 

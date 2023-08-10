@@ -123,18 +123,21 @@ class Data_Builder:
             employee_line = indexer.get_index_set('employee')
             employee_line.extend(indexer.get_index_set('line'))
             order_suborder = orders_pandas_df.index.to_list()
+            
 
             index_dict = {key: None for key in data_indexes_columns}
 
-            #print(index_dict)
             for idx in index_dict.keys():
                 try:
-                    index_dict[idx] = indexer.get_index_set(idx)
+                    if indexer.get_index_set(idx) != []:
+                        index_dict[idx] = indexer.get_index_set(idx)
+                    else:
+                        if idx == 'employee_line':
+                            index_dict[idx] = employee_line
+                        elif idx == 'order_suborder':
+                         index_dict[idx] = order_suborder
                 except:
-                    if idx == 'employee_line':
-                        index_dict[idx] = employee_line
-                    elif idx == 'order_suborder':
-                        index_dict[idx] = order_suborder
+                    print(f'{idx} not found in keys of index_dict: {index_dict.keys()}')
             
             #print(index_dict)
 
@@ -142,7 +145,7 @@ class Data_Builder:
 
             self.index_df_enlarged = True
 
-            print(self.index_df.get_pandas_dataframe())
+            #print(self.index_df.get_pandas_dataframe())
             
             
             
