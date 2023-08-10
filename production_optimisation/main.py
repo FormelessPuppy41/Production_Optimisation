@@ -1,4 +1,7 @@
+import pulp
+
 from data.data_process import Data_process
+from problem_declaration.optimization_model import Optimization_Model
 
 import pandas as pd
 
@@ -11,4 +14,5 @@ process.process_read_dataframes('EW_read')
 process.process_build_dataframes()
 
 
+# Optimization_Model('EW_min', pulp.LpMinimize)
 

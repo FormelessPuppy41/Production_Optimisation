@@ -36,9 +36,11 @@ data_builder_columns = {
 }
 
 data_indexes_columns = { # Column titles of index sets.
+    'order_suborder': 'Order_suborder',
+    'order': 'Orders',
+    'suborder': 'Sub_orders',
     'time': 'Time_intervals',
-    'orders': 'Orders',
-    'suborders': 'Sub_orders',
-    'employees': 'Employees',
-    'lines': 'Production_lines'
+    'employee_line': 'Employee_line',
+    'employee': 'Employees',
+    'line': 'Production_lines'
 }

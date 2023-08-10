@@ -7,7 +7,7 @@ from data.dataframes import Dataframes
 from data.data_cleaner import Data_Cleaner
 from data.data_index import Data_Index
 
-from general_configuration import all_dataframes, data_builder_columns
+from general_configuration import all_dataframes, data_builder_columns, data_indexes_columns
 
 class Data_Builder:
     def __init__(self, dataframes_class: Dataframes):
@@ -18,15 +18,28 @@ class Data_Builder:
         """
         self.dataframes_class = dataframes_class
         self.dataframes = dataframes_class.dataframes
+
         self.orders_df: Dataframe
         self.orders_found = False
+
+        self.index_df: Dataframe
+        self.index_df_found = False
+        self.index_df_enlarged = False
+
         self.excel_file = dataframes_class.get_dataframe_by_index(0).get_excel_file()
 
         orders_name = all_dataframes.get('orders_df')
+        index_df_name = all_dataframes.get('index_sets_df')
 
         try: 
             self.orders_df = dataframes_class.get_dataframe_by_name(orders_name)
             self.orders_found = True
+        except: 
+            pass
+
+        try: 
+            self.index_df = dataframes_class.get_dataframe_by_name(index_df_name)
+            self.index_df_found = True
         except: 
             pass
     
@@ -53,22 +66,10 @@ class Data_Builder:
         pass
     def build_manual_planning_df(self, column_names: str):
         pass
-    def build_old_or_manual_planning_df(self, columns_names: str):
-        pass
 
     def build_to_calculate_order_df(self, column_names: str): # probably not nessecary.
         pass
 
-    def build_dates_start_deadline_df(self, columns_names: str):
-        pass
-    def build_specific_production_line_df(self, columns_names: str):
-        pass
-    def build_time_required_per_order_df(self, column_names: List[str]):
-        pass
-    def build_next_and_prev_suborder_df(self, columm_names: str):
-        pass
-    def build_revenue_df(self,column_names: str):
-        pass
 
     def build_penalty_df(self):
         dates_df = self.dataframes_class.get_dataframe_by_name(all_dataframes.get('dates_df')).get_pandas_dataframe()
@@ -76,7 +77,7 @@ class Data_Builder:
         time_req_df = self.dataframes_class.get_dataframe_by_name(all_dataframes.get('time_req_df')).get_pandas_dataframe()
         
         time_index = Data_Index(self.dataframes_class).get_index_set('time')
-        orders_index = Data_Index(self.dataframes_class).get_orders_set()
+        orders_index = Data_Index(self.dataframes_class).get_orders_set() #FIXME: INDEXES: change to get_index_set but there must be a check that index sets has been enlarged.
 
         penalty_df = pd.DataFrame(index=time_index, columns=orders_index)
 
@@ -110,3 +111,38 @@ class Data_Builder:
             penalty = start_now + math.exp(exp_val) + math.log(revenue)
         
         return penalty
+    
+
+    def build_complete_index_sets_df(self):
+        if self.index_df_found and self.orders_found:
+            indexer = Data_Index(self.dataframes_class)
+
+            index_pandas_df = self.index_df.get_pandas_dataframe()
+            orders_pandas_df = self.orders_df.get_pandas_dataframe()
+
+            employee_line = indexer.get_index_set('employee')
+            employee_line.extend(indexer.get_index_set('line'))
+            order_suborder = orders_pandas_df.index.to_list()
+
+            index_dict = {key: None for key in data_indexes_columns}
+
+            #print(index_dict)
+            for idx in index_dict.keys():
+                try:
+                    index_dict[idx] = indexer.get_index_set(idx)
+                except:
+                    if idx == 'employee_line':
+                        index_dict[idx] = employee_line
+                    elif idx == 'order_suborder':
+                        index_dict[idx] = order_suborder
+            
+            #print(index_dict)
+
+            self.index_df.change_pandas_dataframe(index_dict)
+
+            self.index_df_enlarged = True
+
+            print(self.index_df.get_pandas_dataframe())
+            
+            
+            

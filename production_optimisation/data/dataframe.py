@@ -83,7 +83,7 @@ class Dataframe:
         Returns:
             pd.DataFrame: The pd.DataFrame version of Dataframe
         """
-        if self.pandas_dataframe.empty:
+        if isinstance(self.pandas_dataframe, pd.DataFrame) and self.pandas_dataframe.empty:
             self.read_excel_dataframe()
                 
         return self.pandas_dataframe
@@ -104,7 +104,7 @@ class Dataframe:
         return self.cleaned
 
     
-    def change_pandas_dataframe(self, new_pandas_df: pd.DataFrame):
+    def change_pandas_dataframe(self, new_pandas_df: pd.DataFrame or dict):
         """Changes the current pandas dataframe to a new dataframe, for example a cleaned dataframe.
 
         Args:

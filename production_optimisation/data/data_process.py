@@ -4,6 +4,7 @@ from data.dataframe import Dataframe
 from data.data_cleaner import Data_Cleaner
 from data.dataframes import Dataframes
 from data.data_builder import Data_Builder
+from data.data_index import Data_Index
 
 import pandas as pd
 
@@ -51,10 +52,11 @@ class Data_process:
         Data_Builder(self.dataframes).build_new_df_column_based(all_dataframes.get('suborders_df'), 'next_prev_suborder')
         Data_Builder(self.dataframes).build_new_df_column_based(all_dataframes.get('revenue_df'), 'revenue')
         Data_Builder(self.dataframes).build_penalty_df()
+        Data_Builder(self.dataframes).build_complete_index_sets_df()
         
 
-
-
+    def process_get_index(self, index_set_type: str):
+        return Data_Index(self.dataframes).get_index_set(index_set_type)
 
 
 
