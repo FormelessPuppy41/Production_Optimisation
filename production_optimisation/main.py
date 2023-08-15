@@ -21,6 +21,8 @@ ewOpt.solve(solver_options={'timelimit': 60})
 
 # write tests that check whether feasability is even possible
 # Check combinations of order_suborder on a line, and whether lines can preform this suborder.
-# Check whether there is enough timespan to plan all orders.
+# Check whether there is enough timespan to plan all orders. That is per suborder, because if only lines work, then only lines suborders can be scheduled.
 
 # ADD: manual urgency in penalty.
+
+# Seperate the constraints into a class, and make functions that apply individual constraints, where multiple functions can be in one

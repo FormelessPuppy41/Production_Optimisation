@@ -44,7 +44,13 @@ class EWOptimisation:
         specific_order_suborder = self.dataframes_class.get_dataframe_by_name(all_dataframes.get('order_specific_df')).get_pandas_dataframe()
         exec_on_line_df = self.dataframes_class.get_dataframe_by_name(all_dataframes.get('line_indicator')).get_pandas_dataframe()
         penalty_df = self.dataframes_class.get_dataframe_by_name(all_dataframes.get('penalty_df')).get_pandas_dataframe()
+        suborders_df = self.dataframes_class.get_dataframe_by_name(all_dataframes.get('suborders_df')).get_pandas_dataframe()
         
+        # Dataframe where unique_code can be looked for by using specific order and suborder.
+        transpose_specific_order_suborder = specific_order_suborder.copy()
+        transpose_specific_order_suborder.reset_index(inplace=True)
+        transpose_specific_order_suborder.set_index(['Order_number', 'Sub_order'], inplace=True)
+
         # Create sets
         self.m.set_order_suborder = pyo.Set(initialize=order_suborder)
         self.m.set_time = pyo.Set(initialize=time)
@@ -53,6 +59,7 @@ class EWOptimisation:
         self.m.set_line = pyo.Set(initialize=line)
         
         self.m.set_alloc_index = pyo.Set(initialize=self.m.set_order_suborder * self.m.set_time * self.m.set_employee_line)
+        self.upperbound = len(self.m.set_order_suborder)*len(self.m.set_time)*len(self.m.set_employee_line)
     
         # Create variables
         self.m.var_alloc = pyo.Var(self.m.set_alloc_index, domain=pyo.Binary)
@@ -112,7 +119,7 @@ class EWOptimisation:
                 ),
                 1
             )
-        #self.m.constr_oneAllocPerEmpl_linPerMoment = pyo.Constraint(self.m.set_time, self.m.set_employee_line, rule=rule_oneAllocPerEmpl_linePerMoment)
+        self.m.constr_oneAllocPerEmpl_linPerMoment = pyo.Constraint(self.m.set_time, self.m.set_employee_line, rule=rule_oneAllocPerEmpl_linePerMoment)
 
 
         def rule_onlyAllocIfEmpl_lineSkilled(m, i, j, k):
@@ -131,7 +138,7 @@ class EWOptimisation:
             return (0, 
                     m.var_alloc[(i, j, k)], 
                     skills_df.loc[k, suborder]) #FIXME: During cleaning every none value should be changed to a 0 value. 
-        #self.m.constr_onlyAllocIfEmpl_lineSkilled = pyo.Constraint(self.m.set_order_suborder, self.m.set_time, self.m.set_employee_line, rule= rule_onlyAllocIfEmpl_lineSkilled)
+        self.m.constr_onlyAllocIfEmpl_lineSkilled = pyo.Constraint(self.m.set_order_suborder, self.m.set_time, self.m.set_employee_line, rule= rule_onlyAllocIfEmpl_lineSkilled)
     
 
         def rule_onlyAllocIfEmpl_lineAvailable(m, i, j, k):
@@ -149,7 +156,7 @@ class EWOptimisation:
             return (0, 
                     m.var_alloc[(i, j, k)], 
                     availability_df.loc[j, k]) #FIXME: During cleaning every none value should be changed to a 0 value. 
-        #self.m.constr_onlyAllocIfEmpl_lineAvailable = pyo.Constraint(self.m.set_order_suborder, self.m.set_time, self.m.set_employee_line, rule= rule_onlyAllocIfEmpl_lineAvailable)
+        self.m.constr_onlyAllocIfEmpl_lineAvailable = pyo.Constraint(self.m.set_order_suborder, self.m.set_time, self.m.set_employee_line, rule= rule_onlyAllocIfEmpl_lineAvailable)
     
 
         def rule_prevSuborderCompletedBeforeNext(m, i, j, k):
@@ -164,34 +171,52 @@ class EWOptimisation:
             Returns:
                 Expression: 0 <= allocation <= a, where a >= 0 and a>= 1 if enough hours of the previous suborder are completed. 
             """
+            order = specific_order_suborder.loc[i].iloc[0]
             suborder = specific_order_suborder.loc[i].iloc[1]
-            prev_suborder_index = suborder.index(suborder) - 1
 
-            sum_suborders = 0
-            for subord in suborder_set:
-                if suborder_set.index(subord) == prev_suborder_index:
-                    sum_suborder += 1
+            prev_suborder_index = suborder_set.index(suborder) - 1
+            prev_suborder = suborder_set[prev_suborder_index]
+
+            suborders_df
+            # FIXME: This only works if all orders and suborders are available, else it runs into problems, as the previous index is infact not the previous, because it is skipped. 
+            # Solvable by perhaps looping through all suborders and continuing when one is found that works or when all suborders are looped through. 
+            # OR by finding a way to always find the previous suborder, without using the index of the unique code, because it is possible that that is not ordered. 
+            
+
+            if prev_suborder_index == 0:
+                return pyo.Constraint.Skip
+            else:
+                prev_order_suborder = transpose_specific_order_suborder.loc[order, prev_suborder].iloc[0]
+            print(prev_order_suborder)
             
             ratio_completedHours_prevSuborders = sum(
-                m.var_alloc[(ord_subord_i, ti_i, empl_line_i)]/time_req_lb.loc[ord_subord_i] 
-                for ord_subord_i in m.set_order_suborder 
-                for ti_i in m.set_time 
+                m.var_alloc[(prev_order_suborder, ti_j, empl_line_i)]/time_req_lb.loc[prev_order_suborder]  
+                for ti_j in m.set_time 
                 for empl_line_i in m.set_employee_line
-            ) #TODO possibly something wrong with the division. See old code.
-
-            if sum_suborders != 0:
-                value = ratio_completedHours_prevSuborders / sum_suborders
-            else:
-                value = ratio_completedHours_prevSuborders
+                if ti_j < j
+            )
             
-            completed_before = pyo.Var(within=pyo.Binary)
+            value = ratio_completedHours_prevSuborders
+            
+            #completed_before = pyo.Var(within=pyo.Binary)
+            # helper 1
+            #def rule_prevSuborderHelper1(m):
+            #    return value >= completed_before
+            #self.m.constr_prevSuborderHelper1 = pyo.Constraint(rule=rule_prevSuborderHelper1)
+            
+            # helper 2 
+            #def rule_prevSuborderHelper2(m):
+            #    return (1-completed_before)*self.upperbound >= value - 1.01
+            #self.m.constr_prevSuborderHelper2 = pyo.Constraint(rule=rule_prevSuborderHelper2)
+            
             #FIXME: PrevPercentage: Add the percentage of previous orders that need to be completed.
             #FIXME: Build a construction such that there is a binairy variable, which is equal to one if enough is completed, this can be done by using constraints which make it indicate that.
-            return (0, m.var_alloc[i,j,k], 1) if value >= 1 else (0, m.var_alloc[i,j,k], 0)
-        #self.m.constr_prevSuborderCompletedBeforeNext = pyo.Constraint(self.m.set_order_suborder, self.m.set_time, self.m.set_employee_line, rule=rule_prevSuborderCompletedBeforeNext)
+            #return (0, m.var_alloc[i,j,k], completed_before)
+            return m.var_alloc[i,j,k] <= value
+        self.m.constr_prevSuborderCompletedBeforeNext = pyo.Constraint(self.m.set_order_suborder, self.m.set_time, self.m.set_employee_line, rule=rule_prevSuborderCompletedBeforeNext)
 
     
-        def rule_lineOrdersOnLine(m, i, j, k):
+        def rule_lineOrdersOnLine(m, i, j, k): 
             """Makes sure that all orders that should be executed on a line are indeed executed on a line.
             This is done by restricting employees, such that they are not able for allocation on line orders. 
 
@@ -208,7 +233,7 @@ class EWOptimisation:
                 return (0, m.var_alloc[(i, j, k)], 0)
             else:
                 return pyo.Constraint.Skip
-        #self.m.constr_lineOrdersOnLine = pyo.Constraint(self.m.set_order_suborder, self.m.set_time, self.m.set_employee, rule=rule_lineOrdersOnLine)
+        self.m.constr_lineOrdersOnLine = pyo.Constraint(self.m.set_order_suborder, self.m.set_time, self.m.set_employee, rule=rule_lineOrdersOnLine)
 
 
         def rule_manualOrdersForEmployee(m, i, j, k):
@@ -224,11 +249,11 @@ class EWOptimisation:
             Returns:
                 Expression: lines can't be allocated on non line orders.
             """
-            if exec_on_line_df.loc[i].iloc[0]:
+            if not exec_on_line_df.loc[i].iloc[0]:
                 return (0, m.var_alloc[(i, j, k)], 0)
             else:
                 return pyo.Constraint.Skip
-        #self.m.constr_manualOrdersForEmployee = pyo.Constraint(self.m.set_order_suborder, self.m.set_time, self.m.set_line, rule=rule_manualOrdersForEmployee)
+        self.m.constr_manualOrdersForEmployee = pyo.Constraint(self.m.set_order_suborder, self.m.set_time, self.m.set_line, rule=rule_manualOrdersForEmployee)
 
 
     def solve(self, solver_options=None):
