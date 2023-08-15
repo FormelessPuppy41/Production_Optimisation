@@ -47,7 +47,6 @@ class Data_Builder:
     def build_new_df_column_based(self, new_dataframe_name: str, data_builder_col: str):
         if self.orders_found:
             copy_orders_df = self.orders_df.create_copy_for_new_dataframe(new_dataframe_name)
-            #Data_Cleaner(copy_orders_df).change_df_index_to_one() #FIXME: orders index.
 
             copy_orders_pandas_df = copy_orders_df.get_pandas_dataframe()
 
@@ -147,5 +146,26 @@ class Data_Builder:
 
             #print(self.index_df.get_pandas_dataframe())
             
-            
+    def build_indicator(self, new_dataframe_name: str, data_builder_col: str):
+        if self.orders_found:
+            copy_orders_df = self.orders_df.create_copy_for_new_dataframe(new_dataframe_name)
+
+            copy_orders_pandas_df = copy_orders_df.get_pandas_dataframe()
+
+            keep_cols = data_builder_columns.get(data_builder_col)
+            drop_cols = [col for col in copy_orders_pandas_df.columns if col not in keep_cols]
+
+            new_pandas_dataframe = copy_orders_df.get_pandas_dataframe().drop(columns=drop_cols)
+
+            for idx in new_pandas_dataframe.index:
+                if new_pandas_dataframe.loc[idx].iloc[0] == 1 or new_pandas_dataframe.loc[idx].iloc[0] == True:
+                    new_pandas_dataframe.loc[idx] = True
+                else:
+                    new_pandas_dataframe.loc[idx] = False
+
+            copy_orders_df.change_pandas_dataframe(new_pandas_dataframe)
+
+            new_dataframe = copy_orders_df
+            self.dataframes_class.append_dataframe(new_dataframe)
+
             

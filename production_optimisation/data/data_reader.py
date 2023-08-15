@@ -110,7 +110,7 @@ class Data_Reader:
         ef_sheets = df_with_sheets.get_excel_file().get_pandas_excel_file().sheet_names
         pandas_df_with_sheets = df_with_sheets.get_pandas_dataframe()
         sheet_names_index = pandas_df_with_sheets.index
-    
+
         if (ef_sheets == sheet_names_index).all():
             sheets_to_read = []
 

@@ -35,7 +35,7 @@ class Data_Cleaner:
                 pass
             if sheet_type == sheet_types.get('index_in_col_A'):
                 self.change_df_index_to_one()
-            elif sheet_type == sheet_types.get('orders'): # FIXME: Orders Index, Possibly change this such that tis also gets the first column as index, but then also change it in data_builder.
+            elif sheet_type == sheet_types.get('orders'):
                 self.clean_order_df()
                 self.change_df_index_to_one()
             elif sheet_type == sheet_types.get('index_sets'):

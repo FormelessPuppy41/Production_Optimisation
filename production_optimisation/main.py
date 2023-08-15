@@ -16,6 +16,11 @@ process.process_build_dataframes()
 
 ewOpt = EWOptimisation(process.dataframes)
 ewOpt.createModel()
-#ewOpt.solve()
+ewOpt.solve(solver_options={'timelimit': 60})
 # Optimization_Model('EW_min', pulp.LpMinimize)
 
+# write tests that check whether feasability is even possible
+# Check combinations of order_suborder on a line, and whether lines can preform this suborder.
+# Check whether there is enough timespan to plan all orders.
+
+# ADD: manual urgency in penalty.

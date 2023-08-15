@@ -110,6 +110,8 @@ class Dataframe:
         Args:
             new_pandas_df (pd.DataFrame): The new DataFrame
         """
+        if isinstance(new_pandas_df, pd.DataFrame):
+            new_pandas_df = new_pandas_df.fillna(2)
         self.pandas_dataframe = new_pandas_df
 
 

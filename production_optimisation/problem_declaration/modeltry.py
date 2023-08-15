@@ -1,7 +1,7 @@
 import pyomo
 import pyomo.opt
 import pyomo.environ as pyo
-import pandas
+import pandas as pd
 import logging
 
 from data.dataframes import Dataframes
@@ -42,7 +42,9 @@ class EWOptimisation:
         skills_df = self.dataframes_class.get_dataframe_by_name(all_dataframes.get('skills_df')).get_pandas_dataframe()
         availability_df = self.dataframes_class.get_dataframe_by_name(all_dataframes.get('availability_df')).get_pandas_dataframe()
         specific_order_suborder = self.dataframes_class.get_dataframe_by_name(all_dataframes.get('order_specific_df')).get_pandas_dataframe()
-
+        exec_on_line_df = self.dataframes_class.get_dataframe_by_name(all_dataframes.get('line_indicator')).get_pandas_dataframe()
+        penalty_df = self.dataframes_class.get_dataframe_by_name(all_dataframes.get('penalty_df')).get_pandas_dataframe()
+        
         # Create sets
         self.m.set_order_suborder = pyo.Set(initialize=order_suborder)
         self.m.set_time = pyo.Set(initialize=time)
@@ -57,7 +59,15 @@ class EWOptimisation:
 
         
         # Create objective
-
+        def rule_objectiveFunction(m):
+            penalty = sum(
+                m.var_alloc[i, j, k] * penalty_df.loc[j, i]
+                for i in m.set_order_suborder
+                for j in m.set_time
+                for k in m.set_employee_line
+                )
+            return penalty
+        self.m.objectiveFunction = pyo.Objective(rule=rule_objectiveFunction(self.m), sense=pyo.minimize)
 
         # Create Constraints
         def rule_requiredPlannedHours(m, i):
@@ -102,7 +112,7 @@ class EWOptimisation:
                 ),
                 1
             )
-        self.m.constr_oneAllocPerEmpl_linPerMoment = pyo.Constraint(self.m.set_time, self.m.set_employee_line, rule=rule_oneAllocPerEmpl_linePerMoment)
+        #self.m.constr_oneAllocPerEmpl_linPerMoment = pyo.Constraint(self.m.set_time, self.m.set_employee_line, rule=rule_oneAllocPerEmpl_linePerMoment)
 
 
         def rule_onlyAllocIfEmpl_lineSkilled(m, i, j, k):
@@ -121,7 +131,7 @@ class EWOptimisation:
             return (0, 
                     m.var_alloc[(i, j, k)], 
                     skills_df.loc[k, suborder]) #FIXME: During cleaning every none value should be changed to a 0 value. 
-        self.m.constr_onlyAllocIfEmpl_lineSkilled = pyo.Constraint(self.m.set_order_suborder, self.m.set_time, self.m.set_employee_line, rule= rule_onlyAllocIfEmpl_lineSkilled)
+        #self.m.constr_onlyAllocIfEmpl_lineSkilled = pyo.Constraint(self.m.set_order_suborder, self.m.set_time, self.m.set_employee_line, rule= rule_onlyAllocIfEmpl_lineSkilled)
     
 
         def rule_onlyAllocIfEmpl_lineAvailable(m, i, j, k):
@@ -139,7 +149,7 @@ class EWOptimisation:
             return (0, 
                     m.var_alloc[(i, j, k)], 
                     availability_df.loc[j, k]) #FIXME: During cleaning every none value should be changed to a 0 value. 
-        self.m.constr_onlyAllocIfEmpl_lineAvailable = pyo.Constraint(self.m.set_order_suborder, self.m.set_time, self.m.set_employee_line, rule= rule_onlyAllocIfEmpl_lineAvailable)
+        #self.m.constr_onlyAllocIfEmpl_lineAvailable = pyo.Constraint(self.m.set_order_suborder, self.m.set_time, self.m.set_employee_line, rule= rule_onlyAllocIfEmpl_lineAvailable)
     
 
         def rule_prevSuborderCompletedBeforeNext(m, i, j, k):
@@ -163,7 +173,7 @@ class EWOptimisation:
                     sum_suborder += 1
             
             ratio_completedHours_prevSuborders = sum(
-                m.var_alloc[(ord_subord_i, ti_i, empl_line_i)]/time_req_lb.loc[ord_subord_i] #FIXME: PrevPercentage: Add the percentage of previous orders that need to be completed.
+                m.var_alloc[(ord_subord_i, ti_i, empl_line_i)]/time_req_lb.loc[ord_subord_i] 
                 for ord_subord_i in m.set_order_suborder 
                 for ti_i in m.set_time 
                 for empl_line_i in m.set_employee_line
@@ -173,18 +183,83 @@ class EWOptimisation:
                 value = ratio_completedHours_prevSuborders / sum_suborders
             else:
                 value = ratio_completedHours_prevSuborders
+            
+            completed_before = pyo.Var(within=pyo.Binary)
+            #FIXME: PrevPercentage: Add the percentage of previous orders that need to be completed.
+            #FIXME: Build a construction such that there is a binairy variable, which is equal to one if enough is completed, this can be done by using constraints which make it indicate that.
+            return (0, m.var_alloc[i,j,k], 1) if value >= 1 else (0, m.var_alloc[i,j,k], 0)
+        #self.m.constr_prevSuborderCompletedBeforeNext = pyo.Constraint(self.m.set_order_suborder, self.m.set_time, self.m.set_employee_line, rule=rule_prevSuborderCompletedBeforeNext)
 
-            return (0, m.var_alloc[i,j,k], value)
-        self.m.constr_prevSuborderCompletedBeforeNext = pyo.Constraint(self.m.set_order_suborder, self.m.set_time, self.m.set_employee_line, rule=rule_prevSuborderCompletedBeforeNext)
+    
+        def rule_lineOrdersOnLine(m, i, j, k):
+            """Makes sure that all orders that should be executed on a line are indeed executed on a line.
+            This is done by restricting employees, such that they are not able for allocation on line orders. 
 
-    def solve(self):
-        solver = pyomo.opt.SolverFactory('cbc')
-        results = solver.solve(self.m, tee=True, keepfiles=False, options_string="mip_tolerances_integrality=1e-9 mip_tolerances_mipgap=0")
+            Args:
+                m (Model): Pyomo Model
+                i (Order_suborder): order_suborder set
+                j (Time): time interval set
+                k (Employees): employee set
 
-        if (results.solver.status != pyomo.opt.SolverStatus.ok):
-            logging.warning('Check solver not ok?')
-        if (results.solver.termination_condition != pyomo.opt.TerminationCondition.optimal):  
-            logging.warning('Check solver optimality?') 
-        
+            Returns:
+                Expression: Employees can't be allocated on line orders.
+            """
+            if exec_on_line_df.loc[i].iloc[0]:
+                return (0, m.var_alloc[(i, j, k)], 0)
+            else:
+                return pyo.Constraint.Skip
+        #self.m.constr_lineOrdersOnLine = pyo.Constraint(self.m.set_order_suborder, self.m.set_time, self.m.set_employee, rule=rule_lineOrdersOnLine)
+
+
+        def rule_manualOrdersForEmployee(m, i, j, k):
+            """Makes sure that all orders that should not be executed on a line are not executed on a line.
+            This is done by restricting lines, such that they are not able for allocation on non line orders. 
+
+            Args:
+                m (Model): Pyomo Model
+                i (Order_suborder): order_suborder set
+                j (Time): time interval set
+                k (Lines): lines set
+
+            Returns:
+                Expression: lines can't be allocated on non line orders.
+            """
+            if exec_on_line_df.loc[i].iloc[0]:
+                return (0, m.var_alloc[(i, j, k)], 0)
+            else:
+                return pyo.Constraint.Skip
+        #self.m.constr_manualOrdersForEmployee = pyo.Constraint(self.m.set_order_suborder, self.m.set_time, self.m.set_line, rule=rule_manualOrdersForEmployee)
+
+
+    def solve(self, solver_options=None):
+        # Create a solver instance
+        solver = pyo.SolverFactory('cbc')
+
+        # Set solver options if provided
+        if solver_options:
+            for option, value in solver_options.items():
+                solver.options[option] = value
+
+        # Solve the model
+        results = solver.solve(self.m)
+
+        # Print solver status and results
+        #self.m.display()
         print(results)
+
+        # 1. Extract solution values from Pyomo variable
+        solution_values = {(i, j, k): self.m.var_alloc[i, j, k].value for (i, j, k) in self.m.set_alloc_index}
+
+        # 2. Create lists of index values for each index set
+        index_values = [idx for idx in self.m.set_alloc_index]
+        index_names = ['order_suborder', 'time', 'empl_line']
+        column_names = ['order_suborder']
+
+        # 3. Create a DataFrame using pandas
+        optimal_df = pd.Series(solution_values.values(), index=pd.MultiIndex.from_tuples(index_values, names=index_names))
+
+        optimal_df = optimal_df.unstack(column_names)
+        print(optimal_df.copy()[(optimal_df!=0).any(axis=1)])
+        # Return the results object
+        return results
 

@@ -23,7 +23,9 @@ all_dataframes = { # 'in code name of dataframe': 'in stored dataframes name of 
     'dates_df': 'dates_start_deadline',
     'suborders_df': 'Next_prev_suborder',
     'revenue_df': 'Revenue',
-    'order_specific_df': 'Order_specific'
+    'order_specific_df': 'Order_specific',
+    'line_indicator': 'line_indicator',
+    'penalty_df': 'penalty'
 } #FIXME: Automate? use info of Dataframe, for example sheetname = str or none and/or dfname to fill this dictionary.
 
 data_builder_columns = {
@@ -34,7 +36,8 @@ data_builder_columns = {
     'urgency': ['Manual_urgency'],
     'percentage': ['Percentage_prev_sub_order_needed_before_next_sub_order'],
     'revenue': ['Revenue'],
-    'specific_orders': ['Order_number', 'Sub_order']
+    'specific_orders': ['Order_number', 'Sub_order'],
+    'line_indicator': ['On_line']
 }
 
 data_indexes_columns = { # Column titles of index sets.
