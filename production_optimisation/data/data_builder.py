@@ -66,9 +66,6 @@ class Data_Builder:
     def build_manual_planning_df(self, column_names: str):
         pass
 
-    def build_to_calculate_order_df(self, column_names: str): # probably not nessecary.
-        pass
-
 
     def build_penalty_df(self):
         dates_df = self.dataframes_class.get_dataframe_by_name(all_dataframes.get('dates_df')).get_pandas_dataframe()
@@ -76,7 +73,7 @@ class Data_Builder:
         time_req_df = self.dataframes_class.get_dataframe_by_name(all_dataframes.get('time_req_df')).get_pandas_dataframe()
         
         time_index = Data_Index(self.dataframes_class).get_index_set('time')
-        orders_index = Data_Index(self.dataframes_class).get_orders_set() #FIXME: INDEXES: change to get_index_set but there must be a check that index sets has been enlarged.
+        orders_index = Data_Index(self.dataframes_class).get_orders_set()
 
         penalty_df = pd.DataFrame(index=time_index, columns=orders_index)
 
@@ -137,14 +134,10 @@ class Data_Builder:
                          index_dict[idx] = order_suborder
                 except:
                     print(f'{idx} not found in keys of index_dict: {index_dict.keys()}')
-            
-            #print(index_dict)
 
             self.index_df.change_pandas_dataframe(index_dict)
 
             self.index_df_enlarged = True
-
-            #print(self.index_df.get_pandas_dataframe())
             
     def build_indicator(self, new_dataframe_name: str, data_builder_col: str):
         if self.orders_found:

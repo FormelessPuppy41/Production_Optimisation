@@ -10,7 +10,7 @@ sheet_types = {'dont_read': 'df_dont_read',
                'index_in_col_A': 'df_index1'
                }
 
-description_order_df = 'Description' # in cleaning the description columns of the orders dataframe should not be 'cleaned' that is turned to uppercase, because then the description might become unreadable.
+description_order_df = 'Description' # in cleaning the 'description columns' of the orders_dataframe should not be 'cleaned' that is turned to uppercase, because then the description might become unreadable.
 
 all_dataframes = { # 'in code name of dataframe': 'in stored dataframes name of dataframe'
     'helper_read_dfs': 'helper_read_sheets',
@@ -25,7 +25,8 @@ all_dataframes = { # 'in code name of dataframe': 'in stored dataframes name of 
     'revenue_df': 'Revenue',
     'order_specific_df': 'Order_specific',
     'line_indicator': 'line_indicator',
-    'penalty_df': 'penalty'
+    'penalty_df': 'penalty',
+    'percentage_df': 'percentage'
 } #FIXME: Automate? use info of Dataframe, for example sheetname = str or none and/or dfname to fill this dictionary.
 
 data_builder_columns = {

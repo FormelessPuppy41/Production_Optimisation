@@ -17,12 +17,16 @@ process.process_build_dataframes()
 ewOpt = EWOptimisation(process.dataframes)
 ewOpt.createModel()
 ewOpt.solve(solver_options={'timelimit': 60})
-# Optimization_Model('EW_min', pulp.LpMinimize)
+
+print(ewOpt.short_solution)
 
 # write tests that check whether feasability is even possible
 # Check combinations of order_suborder on a line, and whether lines can preform this suborder.
 # Check whether there is enough timespan to plan all orders. That is per suborder, because if only lines work, then only lines suborders can be scheduled.
+# Check that the inputted indexes are of the correct format, and give a message if they are not. 
 
 # ADD: manual urgency in penalty.
 
 # Seperate the constraints into a class, and make functions that apply individual constraints, where multiple functions can be in one
+
+# GANTCHART: line for start and deadline date, for each order a colour, and for each suborder a pattern?, dropdown filters for orders and emplys. scrollable?

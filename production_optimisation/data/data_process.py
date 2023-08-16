@@ -8,9 +8,6 @@ from data.data_index import Data_Index
 
 import pandas as pd
 
-#FIXME: Ask someone how to properly structure a package, such that relative imports work: what to put in __init__.py files.
-
-
 class Data_process:
     def __init__(self, helper_read_dfs_name: str):
         self.helper_read_dfs_name = all_dataframes.get(helper_read_dfs_name)
@@ -53,6 +50,7 @@ class Data_process:
         builder.build_new_df_column_based(all_dataframes.get('suborders_df'), 'next_prev_suborder')
         builder.build_new_df_column_based(all_dataframes.get('revenue_df'), 'revenue')
         builder.build_new_df_column_based(all_dataframes.get('order_specific_df'), 'specific_orders')
+        builder.build_new_df_column_based(all_dataframes.get('percentage_df'), 'percentage')
         builder.build_penalty_df()
         builder.build_complete_index_sets_df()
 

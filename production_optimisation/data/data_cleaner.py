@@ -21,9 +21,6 @@ class Data_Cleaner:
 
     # Main function that cleans the different types of dataframes
     def clean_dfs(self, df_helper_read_sheets: Dataframe): 
-        #FIXME: indexsets/Uppercase in columns, It might be usefull to add a cleaner that changes columns and indices to upper \
-        # if they have the label where they have index sets in the df. but this is easier to check whether all the inputted \
-        # values in the indexsetdf is uppercase, being both here and in excel everything comes from that df or the ordersdf
         """Applies a cleaning process based on the type of the dataframe.
         """
         if not self.dataframe.get_cleaned_status():
@@ -87,8 +84,6 @@ class Data_Cleaner:
         Returns:
             'cleaned element': Either a cleaned element or the old element''
         """
-        #FIXME: index_sets: Instead of only changing them, should this not also give like a warning message that indicates which values are wrong. \
-        #  because then the other dataframes with these as indices/columns don't need to be cleaned for those things.
         if element: # Removes Empty / None elements.
             if pd.notna(element) and isinstance(element, str):
                 return element.upper()

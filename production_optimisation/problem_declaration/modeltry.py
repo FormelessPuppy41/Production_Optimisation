@@ -15,6 +15,9 @@ class EWOptimisation:
     def __init__(self, dataframes_class: Dataframes):
         self.dataframes_class = dataframes_class
         self.data_index = Data_Index(self.dataframes_class)
+
+        self.solution = pd.DataFrame
+        self.short_solution = pd.DataFrame
         
 
     
@@ -45,6 +48,7 @@ class EWOptimisation:
         exec_on_line_df = self.dataframes_class.get_dataframe_by_name(all_dataframes.get('line_indicator')).get_pandas_dataframe()
         penalty_df = self.dataframes_class.get_dataframe_by_name(all_dataframes.get('penalty_df')).get_pandas_dataframe()
         suborders_df = self.dataframes_class.get_dataframe_by_name(all_dataframes.get('suborders_df')).get_pandas_dataframe()
+        percentage_df = self.dataframes_class.get_dataframe_by_name(all_dataframes.get('percentage_df')).get_pandas_dataframe()
         
         # Dataframe where unique_code can be looked for by using specific order and suborder.
         transpose_specific_order_suborder = specific_order_suborder.copy()
@@ -173,46 +177,34 @@ class EWOptimisation:
             """
             order = specific_order_suborder.loc[i].iloc[0]
             suborder = specific_order_suborder.loc[i].iloc[1]
+            percentage = percentage_df.loc[i].iloc[0]
 
             prev_suborder_index = suborder_set.index(suborder) - 1
-            prev_suborder = suborder_set[prev_suborder_index]
 
-            suborders_df
-            # FIXME: This only works if all orders and suborders are available, else it runs into problems, as the previous index is infact not the previous, because it is skipped. 
-            # Solvable by perhaps looping through all suborders and continuing when one is found that works or when all suborders are looped through. 
-            # OR by finding a way to always find the previous suborder, without using the index of the unique code, because it is possible that that is not ordered. 
-            
+            while prev_suborder_index > 0:
+                prev_suborder = suborder_set[prev_suborder_index]
+                try:
+                    prev_order_suborder = transpose_specific_order_suborder.loc[order, prev_suborder].iloc[0]
+                    break # valid suborder found
+                except KeyError:
+                    prev_suborder_index -= 1
+                    continue
 
-            if prev_suborder_index == 0:
+            if prev_suborder_index <= 0:
                 return pyo.Constraint.Skip
-            else:
-                prev_order_suborder = transpose_specific_order_suborder.loc[order, prev_suborder].iloc[0]
-            print(prev_order_suborder)
             
-            ratio_completedHours_prevSuborders = sum(
+            ratio_completedHoursPrevSuborders = sum(
                 m.var_alloc[(prev_order_suborder, ti_j, empl_line_i)]/time_req_lb.loc[prev_order_suborder]  
                 for ti_j in m.set_time 
                 for empl_line_i in m.set_employee_line
                 if ti_j < j
             )
-            
-            value = ratio_completedHours_prevSuborders
-            
-            #completed_before = pyo.Var(within=pyo.Binary)
-            # helper 1
-            #def rule_prevSuborderHelper1(m):
-            #    return value >= completed_before
-            #self.m.constr_prevSuborderHelper1 = pyo.Constraint(rule=rule_prevSuborderHelper1)
-            
-            # helper 2 
-            #def rule_prevSuborderHelper2(m):
-            #    return (1-completed_before)*self.upperbound >= value - 1.01
-            #self.m.constr_prevSuborderHelper2 = pyo.Constraint(rule=rule_prevSuborderHelper2)
-            
-            #FIXME: PrevPercentage: Add the percentage of previous orders that need to be completed.
-            #FIXME: Build a construction such that there is a binairy variable, which is equal to one if enough is completed, this can be done by using constraints which make it indicate that.
-            #return (0, m.var_alloc[i,j,k], completed_before)
-            return m.var_alloc[i,j,k] <= value
+
+            ratio_completed_vs_neededHours = ratio_completedHoursPrevSuborders / percentage
+
+            #TODO: The current structure loops through every possiblitiy instead of grabbing a specific order_suborder combination that is being implicated via suborders_df (prev/next_suborder)
+
+            return m.var_alloc[i,j,k] <= ratio_completed_vs_neededHours
         self.m.constr_prevSuborderCompletedBeforeNext = pyo.Constraint(self.m.set_order_suborder, self.m.set_time, self.m.set_employee_line, rule=rule_prevSuborderCompletedBeforeNext)
 
     
@@ -257,7 +249,6 @@ class EWOptimisation:
 
 
     def solve(self, solver_options=None):
-        # Create a solver instance
         solver = pyo.SolverFactory('cbc')
 
         # Set solver options if provided
@@ -265,26 +256,21 @@ class EWOptimisation:
             for option, value in solver_options.items():
                 solver.options[option] = value
 
-        # Solve the model
         results = solver.solve(self.m)
 
-        # Print solver status and results
-        #self.m.display()
         print(results)
 
-        # 1. Extract solution values from Pyomo variable
         solution_values = {(i, j, k): self.m.var_alloc[i, j, k].value for (i, j, k) in self.m.set_alloc_index}
 
-        # 2. Create lists of index values for each index set
         index_values = [idx for idx in self.m.set_alloc_index]
         index_names = ['order_suborder', 'time', 'empl_line']
         column_names = ['order_suborder']
 
-        # 3. Create a DataFrame using pandas
         optimal_df = pd.Series(solution_values.values(), index=pd.MultiIndex.from_tuples(index_values, names=index_names))
-
         optimal_df = optimal_df.unstack(column_names)
-        print(optimal_df.copy()[(optimal_df!=0).any(axis=1)])
-        # Return the results object
+
+        self.solution = optimal_df
+        self.short_solution = self.solution.copy()[(self.solution!=0).any(axis=1)]
+
         return results
 
