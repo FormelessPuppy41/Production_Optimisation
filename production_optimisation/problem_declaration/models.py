@@ -114,7 +114,7 @@ class EWOptimisation:
                 k (empl_line): Employees and/or Lines
 
             Returns:
-                Expression: 0<= sum over order_suborder's for allocation <= 1
+                Expression: 0 <= sum over order_suborder's for allocation <= 1
             """
             return (
                 0, 

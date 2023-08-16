@@ -1,8 +1,7 @@
 import pulp
 
 from data.data_process import Data_process
-from problem_declaration.modeltry import EWOptimisation
-from problem_declaration.optimization_model import Optimization_Model
+from problem_declaration.models import EWOptimisation
 
 import pandas as pd
 
@@ -26,6 +25,7 @@ print(ewOpt.short_solution)
 # Check that the inputted indexes are of the correct format, and give a message if they are not. 
 
 # ADD: manual urgency in penalty.
+# ADD: Constraint that minimizes amount of workers. But also a worker cannot work more than x hours per week. 
 
 # Seperate the constraints into a class, and make functions that apply individual constraints, where multiple functions can be in one
 
