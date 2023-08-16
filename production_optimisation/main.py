@@ -3,6 +3,7 @@ import re
 
 from data.data_process import Data_process
 from problem_declaration.models import EWOptimisation
+from solution.gantt_chart import GanttChart
 
 from general_configuration import path_to_excel
 
@@ -25,7 +26,11 @@ ewOpt = EWOptimisation(process.dataframes)
 ewOpt.createModel()
 ewOpt.solve(solver_options={'timelimit': 60})
 
-print(ewOpt.short_solution)
+#print(ewOpt.short_solution)
+
+gantt_chart = GanttChart(ewOpt.short_solution)
+gantt_chart.convert_dataframe()
+gantt_chart.create_ganttchart()
 
 # write tests that check whether feasability is even possible
 # Check combinations of order_suborder on a line, and whether lines can preform this suborder.

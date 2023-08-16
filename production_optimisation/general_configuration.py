@@ -27,7 +27,7 @@ all_dataframes = { # 'in code name of dataframe': 'in stored dataframes name of 
     'line_indicator': 'line_indicator',
     'penalty_df': 'penalty',
     'percentage_df': 'percentage'
-} #FIXME: Automate? use info of Dataframe, for example sheetname = str or none and/or dfname to fill this dictionary.
+} 
 
 data_builder_columns = {
     'dates': ['Date_start', 'Date_deadline'],
@@ -50,3 +50,6 @@ data_indexes_columns = { # Column titles of index sets.
     'employee': 'Employees',
     'line': 'Production_lines'
 }
+#FIXME: Automate? use info of Dataframe, for example sheetname = str or none and/or dfname to fill this dictionary.
+# combine them and leave some columns empty? Also possible to change it into a dataframe, or a dictionary with a list with different values:
+# dict={order: [Orders_dataframe, [Previous_sub_order, Next_suborder], Orders], time: [.., [...], ...]}

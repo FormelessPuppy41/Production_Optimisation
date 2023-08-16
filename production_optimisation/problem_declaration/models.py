@@ -259,7 +259,7 @@ class EWOptimisation:
 
         results = solver.solve(self.m)
 
-        print(results)
+        #print(results)
 
         solution_values = {(i, j, k): self.m.var_alloc[i, j, k].value for (i, j, k) in self.m.set_alloc_index}
 
@@ -268,7 +268,9 @@ class EWOptimisation:
         column_names = ['order_suborder']
 
         optimal_df = pd.Series(solution_values.values(), index=pd.MultiIndex.from_tuples(index_values, names=index_names))
+        #print(optimal_df)
         optimal_df = optimal_df.unstack(column_names)
+        #print(optimal_df)
 
         self.solution = optimal_df
         self.short_solution = self.solution.copy()[(self.solution!=0).any(axis=1)]
