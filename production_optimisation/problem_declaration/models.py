@@ -203,6 +203,7 @@ class EWOptimisation:
             ratio_completed_vs_neededHours = ratio_completedHoursPrevSuborders / percentage
 
             #TODO: The current structure loops through every possiblitiy instead of grabbing a specific order_suborder combination that is being implicated via suborders_df (prev/next_suborder)
+            #TODO: Add constraint that makes sure that there is never scheduled 'more' of next suborder then previous, that is mont cannot be fully scheduled if previous smd2 is not fully scheduled.
 
             return m.var_alloc[i,j,k] <= ratio_completed_vs_neededHours
         self.m.constr_prevSuborderCompletedBeforeNext = pyo.Constraint(self.m.set_order_suborder, self.m.set_time, self.m.set_employee_line, rule=rule_prevSuborderCompletedBeforeNext)

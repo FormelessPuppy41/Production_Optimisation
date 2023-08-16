@@ -3,7 +3,6 @@ from tkinter import messagebox
 from typing import List
 import pandas as pd
 
-from data.data_excel_file import ExcelFile
 from data.dataframe import Dataframe
 from general_configuration import sheet_types
 
@@ -12,17 +11,16 @@ class Data_Reader:
     """The Data_Reader class is for reading all the dataframes in a ExcelFile in a given path (to the excelfile). 
     This can be done with the method: "read_all_dataframes".
     """
-    def __init__(self, name_excel_file: str, path_excel_file: str):
+    def __init__(self, pandas_excel_file: pd.ExcelFile):
         """This is a constructor for a Data_Reader.
 
         Args:
             name_excel_file (str): Name for the excelfile (Does not have to be the .xlsx name)
             path_excel_file (str): Path to the Excel File.
         """
-        self.name_excel_file = name_excel_file
-        self.path_excel_file = path_excel_file
+        self.excel_file = pandas_excel_file
+        self.path_excel_file = pandas_excel_file.io
 
-        self.excel_file = ExcelFile(name_excel_file=name_excel_file, path_excel_file=path_excel_file)
         self.dataframes: List[Dataframe] = []
 
 
@@ -39,7 +37,7 @@ class Data_Reader:
             message that non of the sheets are found in the File.
 
         """
-        sheet_names = self.excel_file.get_sheet_names()
+        sheet_names = self.excel_file.sheet_names
 
         # Check whether sheets are in the actual ExcelFile and divide them over two lists, one where they are present
         # and one where they are not present.
@@ -70,7 +68,7 @@ class Data_Reader:
         for sheet in given_sheets_in_excel_file:
             
             dataframe = Dataframe(
-                excel_file=self.excel_file, dataframe_name=f'{sheet}', excel_sheet_name=sheet
+                pandas_excel_file=self.excel_file, dataframe_name=f'{sheet}', excel_sheet_name=sheet
                 )
             dataframe.read_excel_dataframe()
             
@@ -107,7 +105,7 @@ class Data_Reader:
         Returns:
             List[str]: List of sheets that need to be read.
         """
-        ef_sheets = df_with_sheets.get_excel_file().get_pandas_excel_file().sheet_names
+        ef_sheets = df_with_sheets.get_excel_file().sheet_names
         pandas_df_with_sheets = df_with_sheets.get_pandas_dataframe()
         sheet_names_index = pandas_df_with_sheets.index
 

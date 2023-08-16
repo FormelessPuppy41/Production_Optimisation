@@ -9,16 +9,17 @@ from data.data_index import Data_Index
 import pandas as pd
 
 class Data_process:
-    def __init__(self, helper_read_dfs_name: str):
-        self.helper_read_dfs_name = all_dataframes.get(helper_read_dfs_name)
-        
+    def __init__(self, pandas_excel_file: pd.ExcelFile):
+        self.pandas_excel_file = pandas_excel_file
         self.helper_read_sheets_df = None
         self.dataframes = None
         self.sheets_to_read = None
 
 
-    def process_helper_read_sheets(self, name_reader: str):
-        reader = Data_Reader(name_excel_file=name_reader, path_excel_file=path_to_excel)
+    def process_helper_read_sheets(self, helper_read_dfs_name: str):
+        reader = Data_Reader(pandas_excel_file=self.pandas_excel_file)
+
+        self.helper_read_dfs_name = all_dataframes.get(helper_read_dfs_name)
 
         reader.read_all_dataframes(df_reader_helper)
         dataframes_reader = Dataframes(dataframes=reader.get_dataframes())
@@ -29,8 +30,8 @@ class Data_process:
         self.sheets_to_read = reader.get_sheets_to_read(self.helper_read_sheets_df)
 
 
-    def process_read_dataframes(self, name_reader: str):
-        reader = Data_Reader(name_excel_file=name_reader, path_excel_file=path_to_excel)
+    def process_read_dataframes(self):
+        reader = Data_Reader(pandas_excel_file=self.pandas_excel_file)
 
         reader.read_all_dataframes(self.sheets_to_read)
         dataframes_reader = reader.get_dataframes()

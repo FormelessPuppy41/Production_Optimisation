@@ -1,16 +1,24 @@
 import pulp
+import re
 
 from data.data_process import Data_process
 from problem_declaration.models import EWOptimisation
+
+from general_configuration import path_to_excel
 
 import pandas as pd
 
 #FIXME: Ask someone how to properly structure a package, such that relative imports work: what to put in __init__.py files.
 
 
-process = Data_process('helper_read_dfs')
-process.process_helper_read_sheets('EW_initial')
-process.process_read_dataframes('EW_read')
+if re.search('.xlsx', path_to_excel):
+    excel_file = pd.ExcelFile(path_to_excel)
+else:
+    raise ValueError(f'No excel file found in directory {path_to_excel}')
+
+process = Data_process(excel_file)
+process.process_helper_read_sheets('helper_read_dfs')
+process.process_read_dataframes()
 process.process_build_dataframes()
 
 ewOpt = EWOptimisation(process.dataframes)

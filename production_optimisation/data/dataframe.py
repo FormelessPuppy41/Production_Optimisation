@@ -1,15 +1,13 @@
 import pandas as pd
 import openpyxl
 
-from data.data_excel_file import ExcelFile
-
 class Dataframe:
     """The Dataframe class is for dataframes that are read from the (parent class) ExcelFile. 
 
     Args:
         ExcelFile (Parent Class): The parent class
     """
-    def __init__(self, excel_file: ExcelFile, dataframe_name: str, excel_sheet_name: str):
+    def __init__(self, pandas_excel_file: pd.ExcelFile, dataframe_name: str, excel_sheet_name: str):
         """This is the constructor for the Dataframe class.
 
         Args:
@@ -20,11 +18,10 @@ class Dataframe:
         """ 
         self.dataframe_name = dataframe_name
         self.excel_sheet_name = excel_sheet_name
-        self.excel_file = excel_file
 
-        self.excel_file_path = self.excel_file.get_path_excel_file()
+        self.pandas_excel_file = pandas_excel_file
+        self.excel_file_path = self.pandas_excel_file.io
 
-        self.pandas_excel_file = excel_file.get_pandas_excel_file()
         self.pandas_dataframe = pd.DataFrame
 
         self.cleaned = False
@@ -69,7 +66,7 @@ class Dataframe:
         
         if self.check_sheet_name_in_excelfile():
             self.pandas_dataframe = pd.read_excel(
-                io=self.excel_file.get_path_excel_file(),
+                io=self.excel_file_path,
                 sheet_name=self.excel_sheet_name,
                 engine='openpyxl'
             ).fillna('')
@@ -115,13 +112,13 @@ class Dataframe:
         self.pandas_dataframe = new_pandas_df
 
 
-    def get_excel_file(self) -> ExcelFile:
+    def get_excel_file(self) -> pd.ExcelFile:
         """Gets the ExcelFile in which the dataframe is placed.
 
         Returns:
             ExcelFile: The ExcelFile in which the dataframe is placed.
         """
-        return self.excel_file
+        return self.pandas_excel_file
     
     
     def create_copy_for_new_dataframe(self, new_dataframe_name: str):
@@ -133,7 +130,7 @@ class Dataframe:
         Returns:
             Dataframe: The new dataframe
         """
-        new_df = Dataframe(self.excel_file, new_dataframe_name, None)
+        new_df = Dataframe(self.pandas_excel_file, new_dataframe_name, None)
         new_df.change_pandas_dataframe(self.get_pandas_dataframe())
         return new_df
 
