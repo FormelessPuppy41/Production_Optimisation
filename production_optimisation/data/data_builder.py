@@ -46,7 +46,6 @@ class Data_Builder:
     
     def build_new_df_column_based(self, dataframe_info: list):
         if self.orders_found:
-            print(dataframe_info)
             new_dataframe_name = dataframe_info[0]
             keep_cols = dataframe_info[1]
             

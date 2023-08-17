@@ -1,6 +1,8 @@
 import pandas as pd
 import openpyxl
 
+from general_configuration import dfs
+
 class Dataframe:
     """The Dataframe class is for dataframes that are read from the (parent class) ExcelFile. 
 
@@ -21,6 +23,16 @@ class Dataframe:
 
         self.pandas_excel_file = pandas_excel_file
         self.excel_file_path = self.pandas_excel_file.io
+
+        # how to retrieve the standardized name from the df name. Then use the standardized name to get the filtertype. 
+        try:
+            for df in dfs.keys():
+                if dfs.get(df)[0] == dataframe_name:
+                    self.df_standard_name = df
+                    self.filterType = dfs.get(df)[2]
+        except KeyError:
+            self.filterType = None
+            pass
 
         self.pandas_dataframe = pd.DataFrame
 
@@ -64,12 +76,14 @@ class Dataframe:
         if self.excel_sheet_name is None:
             raise ValueError("DataFrame does not have its own sheet in the Excel file.")
         
+        print(self.dataframe_name)
+        
         if self.check_sheet_name_in_excelfile():
             self.pandas_dataframe = pd.read_excel(
                 io=self.excel_file_path,
                 sheet_name=self.excel_sheet_name,
                 engine='openpyxl'
-            ).fillna('')
+            ).fillna(self.filterType)
         else:
             raise KeyError(f'Sheet name: {self.excel_sheet_name} , not found in the Excel file in path: {self.excel_file_path}')
     

@@ -8,6 +8,7 @@ from data.data_index import Data_Index
 
 import pandas as pd
 
+from general_configuration import dfs_to_build_columnBased, dfs_to_build_indicatorBased
 class Data_process:
     def __init__(self, pandas_excel_file: pd.ExcelFile):
         self.pandas_excel_file = pandas_excel_file
@@ -43,19 +44,16 @@ class Data_process:
 
 
     def process_build_dataframes(self):
-        #FIXME: Dictionary: Create a dictionary that 'applies' both, then this can probably be moved to a 'build_all()' function, instead of calling individually.
         builder = Data_Builder(self.dataframes)
-        builder.build_new_df_column_based(dfs.get('time_req_df')) 
-        builder.build_new_df_column_based(dfs.get('specific_line_df'))
-        builder.build_new_df_column_based(dfs.get('dates_df'))
-        builder.build_new_df_column_based(dfs.get('next_prev_suborder_df'))
-        builder.build_new_df_column_based(dfs.get('revenue_df'))
-        builder.build_new_df_column_based(dfs.get('order_specific_df'))
-        builder.build_new_df_column_based(dfs.get('percentage_df'))
+
+        for df_name in dfs_to_build_columnBased:
+            builder.build_new_df_column_based(dfs.get(df_name))
+
         builder.build_penalty_df()
         builder.build_complete_index_sets_df()
 
-        builder.build_indicator(dfs.get('line_indicator_df'))
+        for df_name in dfs_to_build_indicatorBased:
+            builder.build_indicator(dfs.get(df_name))
         
 
     def process_get_index(self, index_set_type: str):

@@ -10,7 +10,6 @@ from general_configuration import path_to_excel
 import pandas as pd
 
 #FIXME: Ask someone how to properly structure a package, such that relative imports work: what to put in __init__.py files.
-import plotly.express as px
 
 
 if re.search('.xlsx', path_to_excel):
@@ -19,15 +18,13 @@ else:
     raise ValueError(f'No excel file found in directory {path_to_excel}')
 
 process = Data_process(excel_file)
-process.process_helper_read_sheets('helper_read_dfs')
+process.process_helper_read_sheets('helper_read_sheets')
 process.process_read_dataframes()
 process.process_build_dataframes()
 
 ewOpt = EWOptimisation(process.dataframes)
 ewOpt.createModel()
 ewOpt.solve(solver_options={'timelimit': 60})
-
-#print(ewOpt.short_solution)
 
 gantt_chart = GanttChart(ewOpt.short_solution)
 gantt_chart.convert_dataframe()

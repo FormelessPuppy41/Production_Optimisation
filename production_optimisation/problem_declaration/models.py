@@ -7,7 +7,7 @@ import logging
 from data.dataframes import Dataframes
 from data.data_index import Data_Index
 
-from general_configuration import all_dataframes, dfs
+from general_configuration import dfs
 
 class EWOptimisation:
     """This class implements the optimisation problem for EW.
@@ -52,8 +52,9 @@ class EWOptimisation:
         
         # Dataframe where unique_code can be looked for by using specific order and suborder.
         transpose_specific_order_suborder = specific_order_suborder.copy()
+        transpose_index = specific_order_suborder.columns.to_list()
         transpose_specific_order_suborder.reset_index(inplace=True)
-        transpose_specific_order_suborder.set_index(['Order_number', 'Sub_order'], inplace=True)
+        transpose_specific_order_suborder.set_index(transpose_index, inplace=True)
 
         # Create sets
         self.m.set_order_suborder = pyo.Set(initialize=order_suborder)
