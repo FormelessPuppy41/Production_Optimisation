@@ -32,9 +32,9 @@ class EWOptimisation:
         employee = self.data_index.get_index_set('employee')
         line = self.data_index.get_index_set('line')
 
-        dates_df = self.dataframes_class.get_dataframe_by_name(dfs.get('dates_df')[0]).get_pandas_dataframe()
-        revenue_df = self.dataframes_class.get_dataframe_by_name(dfs.get('revenue_df')[0]).get_pandas_dataframe()
-        time_req_df = self.dataframes_class.get_dataframe_by_name(dfs.get('time_req_df')[0]).get_pandas_dataframe()
+        dates_df = self.dataframes_class.get_dataframe_by_name('dates_df').get_pandas_dataframe()
+        revenue_df = self.dataframes_class.get_dataframe_by_name('revenue_df').get_pandas_dataframe()
+        time_req_df = self.dataframes_class.get_dataframe_by_name('time_req_df').get_pandas_dataframe()
 
         date_start = dates_df.iloc[:, 0]
         date_deadline = dates_df.iloc[:, 1]
@@ -42,13 +42,13 @@ class EWOptimisation:
         time_req_lb = time_req_df.iloc[:, 0]
         time_req_ub = time_req_df.iloc[:, 1]
 
-        skills_df = self.dataframes_class.get_dataframe_by_name(dfs.get('skills_df')[0]).get_pandas_dataframe()
-        availability_df = self.dataframes_class.get_dataframe_by_name(dfs.get('availability_df')[0]).get_pandas_dataframe()
-        specific_order_suborder = self.dataframes_class.get_dataframe_by_name(dfs.get('order_specific_df')[0]).get_pandas_dataframe()
-        exec_on_line_df = self.dataframes_class.get_dataframe_by_name(dfs.get('line_indicator_df')[0]).get_pandas_dataframe()
-        penalty_df = self.dataframes_class.get_dataframe_by_name(dfs.get('penalty_df')[0]).get_pandas_dataframe()
-        suborders_df = self.dataframes_class.get_dataframe_by_name(dfs.get('next_prev_suborder_df')[0]).get_pandas_dataframe()
-        percentage_df = self.dataframes_class.get_dataframe_by_name(dfs.get('percentage_df')[0]).get_pandas_dataframe()
+        skills_df = self.dataframes_class.get_dataframe_by_name('skills_df').get_pandas_dataframe()
+        availability_df = self.dataframes_class.get_dataframe_by_name('availability_df').get_pandas_dataframe()
+        specific_order_suborder = self.dataframes_class.get_dataframe_by_name('order_specific_df').get_pandas_dataframe()
+        exec_on_line_df = self.dataframes_class.get_dataframe_by_name('line_indicator_df').get_pandas_dataframe()
+        penalty_df = self.dataframes_class.get_dataframe_by_name('penalty_df').get_pandas_dataframe()
+        suborders_df = self.dataframes_class.get_dataframe_by_name('next_prev_suborder_df').get_pandas_dataframe()
+        percentage_df = self.dataframes_class.get_dataframe_by_name('percentage_df').get_pandas_dataframe()
         
         # Dataframe where unique_code can be looked for by using specific order and suborder.
         transpose_specific_order_suborder = specific_order_suborder.copy()

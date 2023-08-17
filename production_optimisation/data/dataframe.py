@@ -25,14 +25,13 @@ class Dataframe:
         self.excel_file_path = self.pandas_excel_file.io
 
         # how to retrieve the standardized name from the df name. Then use the standardized name to get the filtertype. 
-        try:
-            for df in dfs.keys():
-                if dfs.get(df)[0] == dataframe_name:
-                    self.df_standard_name = df
-                    self.filterType = dfs.get(df)[2]
-        except KeyError:
-            self.filterType = None
-            pass
+        for df in dfs.keys():
+            if dfs.get(df)[0] == dataframe_name:
+                self.df_standard_name = df
+                self.filterType = dfs.get(df)[2]
+            elif df == dataframe_name:
+                self.df_standard_name = dataframe_name
+                self.filterType = dfs.get(df)[2]
 
         self.pandas_dataframe = pd.DataFrame
 
@@ -46,6 +45,14 @@ class Dataframe:
             str: Name of the Dataframe
         """
         return self.dataframe_name
+    
+    def get_standerd_name_dataframe(self) -> str:
+        """Gets the standard name of the Dataframe, that is the name that is used in general_config.
+
+        Returns:
+            str: Standard name of the Dataframe.
+        """
+        return self.df_standard_name
     
 
     def check_sheet_name_in_excelfile(self) -> bool:
@@ -76,7 +83,6 @@ class Dataframe:
         if self.excel_sheet_name is None:
             raise ValueError("DataFrame does not have its own sheet in the Excel file.")
         
-        print(self.dataframe_name)
         
         if self.check_sheet_name_in_excelfile():
             self.pandas_dataframe = pd.read_excel(

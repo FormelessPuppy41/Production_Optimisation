@@ -7,7 +7,11 @@ import pandas as pd
 class GanttChart:
     def __init__(self, dataframe: pd.DataFrame):
         self.df = dataframe
+        self.plt = plt
     
+    def show_plt(self):
+        self.plt.show()
+
     def convert_dataframe(self):
         self.df = self.df.copy().stack()
         self.df = self.df[self.df != 0.0]
@@ -16,7 +20,7 @@ class GanttChart:
         
 
     def create_ganttchart(self):
-        fig, ax = plt.subplots(figsize=(12, 8))
+        fig, ax = self.plt.subplots(figsize=(12, 8))
 
         # Loop through each unique 'order_suborder'
         for order_suborder in self.grouped_df['order_suborder'].unique():
@@ -44,10 +48,9 @@ class GanttChart:
         ax.xaxis.set_major_formatter(plt.matplotlib.dates.DateFormatter('%H:%M'))
 
         # Rotate x-axis labels for better visibility
-        plt.xticks(rotation=0)
+        self.plt.xticks(rotation=0)
 
         # Add legend
         ax.legend()
 
-        plt.tight_layout()
-        plt.show()
+        self.plt.tight_layout()

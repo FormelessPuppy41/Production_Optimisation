@@ -3,9 +3,9 @@ import re
 
 from data.data_process import Data_process
 from problem_declaration.models import EWOptimisation
-from solution.gantt_chart import GanttChart
+from ganttChart.gantt_chart import GanttChart
 
-from general_configuration import path_to_excel
+from general_configuration import path_to_excel, time_limit
 
 import pandas as pd
 
@@ -19,16 +19,21 @@ else:
 
 process = Data_process(excel_file)
 process.process_helper_read_sheets('helper_read_sheets')
+print(process.dataframes)
 process.process_read_dataframes()
+print(process.dataframes)
 process.process_build_dataframes()
+print(process.dataframes)
 
+print(process.dataframes.get_dataframe_by_name('old_planning').get_pandas_dataframe())
 ewOpt = EWOptimisation(process.dataframes)
 ewOpt.createModel()
-ewOpt.solve(solver_options={'timelimit': 60})
+ewOpt.solve(solver_options={'timelimit': time_limit})
 
 gantt_chart = GanttChart(ewOpt.short_solution)
 gantt_chart.convert_dataframe()
 gantt_chart.create_ganttchart()
+gantt_chart.show_plt()
 
 # write tests that check whether feasability is even possible
 

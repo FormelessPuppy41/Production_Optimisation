@@ -8,8 +8,8 @@ class Data_Index(Dataframes):
     def __init__(self, dataframes: Dataframes):
         self.dataframes = dataframes
 
-        index_df_name = dfs.get('index_sets_df')[0]
-        orders_df_name = dfs.get('orders_df')[0]
+        index_df_name = 'index_sets_df'
+        orders_df_name = 'orders_df'
         try:
             self.index_df = self.dataframes.get_dataframe_by_name(index_df_name)
             self.orders_df = self.dataframes.get_dataframe_by_name(orders_df_name)

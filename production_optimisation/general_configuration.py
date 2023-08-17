@@ -1,6 +1,7 @@
 
 
 path_to_excel = "/Users/gebruiker/Dropbox/Werk/BMQSolutions/0_Production_optimisation/ElectroWatt_Optimisation.xlsx"
+time_limit = 60
 
 df_reader_helper = ['helper_read_sheets'] # Sheet that contains information about all the other sheets. Possible to rename to 'sheet1', that way it is standardized, but also this is standardized as long as you dont change the name. 
 
@@ -10,7 +11,7 @@ sheet_types = { # Should be compatable with 'type of sheets' in 'config_main'
     'index_sets': 'df_sets_of_index', 
     'orders': 'df_orders', 
     'index_in_col_A': 'df_index1'
-    }
+}
 
 description_order_df = 'Description' # in cleaning the 'description columns' of the orders_dataframe should not be 'cleaned' that is turned to uppercase, because then the description might become unreadable.
 
@@ -20,9 +21,11 @@ dfs = { # Standard name: [ Name of excelsheet / dataframe, [ columns in (orders)
     'index_sets_df': ['Index_sets_dataframe', None, ''], # read from excel
     'availability_df': ['Config_availability', None, 0.0], # read from excel
     'skills_df': ['Config_skills', None, 0.0], # read from excel
-    'time_req_df': ['Time_required_per_order', ['Time_hours_lowerbound', 'Time_hours_upperbound'], ''],
-    'specific_line_df': ['Production_specific_line', ['Production_line_specific_line'], ''],
-    'dates_df': ['dates_start_deadline', ['Date_start', 'Date_deadline'], ''],
+    'old_planning':['Planning', None, 0.0], # read from excel
+    'manual_planning':['man_planning', None, 0.0], # read from excel
+    'time_req_df': ['Time_required_per_order', ['Time_hours_lowerbound', 'Time_hours_upperbound'], None],
+    'specific_line_df': ['Production_specific_line', ['Production_line_specific_line'], None],
+    'dates_df': ['dates_start_deadline', ['Date_start', 'Date_deadline'], None],
     'next_prev_suborder_df': ['Next_prev_suborder', ['Previous_sub_order', 'Next_sub_order'], None],
     'revenue_df': ['Revenue', ['Revenue'], None],
     'order_specific_df': ['Order_specific', ['Order_number', 'Sub_order'], None],

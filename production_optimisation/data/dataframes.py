@@ -4,6 +4,8 @@ from typing import List
 from data.dataframe import Dataframe
 from data.data_cleaner import Data_Cleaner
 
+from general_configuration import dfs
+
 
 class Dataframes:
     """The Dataframes class stores a List of Dataframes. Using Dataframes one can easily clean all Dataframes or get a single Dataframe.
@@ -27,8 +29,26 @@ class Dataframes:
             Dataframe: Dataframe that is being called.
         """
         for df in self.dataframes:
+            if dataframe_name == df.df_standard_name:
+                return df
+
+        """for df in self.dataframes:
+            print(df.get_name_dataframe())
+            print('waw')
             if dataframe_name == df.get_name_dataframe():
                 return df
+            
+        # If dataframe_name is not found, then:
+        print(dataframe_name)
+        for df in dfs.keys():
+            print(df)
+            print('*')
+            if df == dataframe_name:
+                return self.get_dataframe_by_name(dfs.get(df)[0])
+            
+            if dfs.get(df)[0] == dataframe_name:
+                df_standard_name = df
+                return self.get_dataframe_by_name(dfs.get(df_standard_name)[0])"""
         
         raise KeyError(f'The given dataframe_name {dataframe_name} cannot be found in the dataframes {self.dataframes}')
 
