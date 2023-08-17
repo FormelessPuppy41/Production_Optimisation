@@ -7,7 +7,7 @@ from data.dataframes import Dataframes
 from data.data_cleaner import Data_Cleaner
 from data.data_index import Data_Index
 
-from general_configuration import all_dataframes, data_builder_columns, data_indexes_columns
+from general_configuration import data_indexes_columns, dfs
 
 class Data_Builder:
     def __init__(self, dataframes_class: Dataframes):
@@ -28,8 +28,8 @@ class Data_Builder:
 
         self.excel_file = dataframes_class.get_dataframe_by_index(0).get_excel_file()
 
-        orders_name = all_dataframes.get('orders_df')
-        index_df_name = all_dataframes.get('index_sets_df')
+        orders_name = dfs.get('orders_df')[0]
+        index_df_name = dfs.get('index_sets_df')[0]
 
         try: 
             self.orders_df = dataframes_class.get_dataframe_by_name(orders_name)
@@ -44,13 +44,17 @@ class Data_Builder:
             pass
     
     
-    def build_new_df_column_based(self, new_dataframe_name: str, data_builder_col: str):
+    def build_new_df_column_based(self, dataframe_info: list):
         if self.orders_found:
+            print(dataframe_info)
+            new_dataframe_name = dataframe_info[0]
+            keep_cols = dataframe_info[1]
+            
             copy_orders_df = self.orders_df.create_copy_for_new_dataframe(new_dataframe_name)
 
             copy_orders_pandas_df = copy_orders_df.get_pandas_dataframe()
 
-            keep_cols = data_builder_columns.get(data_builder_col)
+            #keep_cols = data_builder_columns.get(data_builder_col)
             drop_cols = [col for col in copy_orders_pandas_df.columns if col not in keep_cols]
 
             new_pandas_dataframe = copy_orders_df.get_pandas_dataframe().drop(columns=drop_cols)
@@ -68,9 +72,9 @@ class Data_Builder:
 
 
     def build_penalty_df(self):
-        dates_df = self.dataframes_class.get_dataframe_by_name(all_dataframes.get('dates_df')).get_pandas_dataframe()
-        revenue_df = self.dataframes_class.get_dataframe_by_name(all_dataframes.get('revenue_df')).get_pandas_dataframe()
-        time_req_df = self.dataframes_class.get_dataframe_by_name(all_dataframes.get('time_req_df')).get_pandas_dataframe()
+        dates_df = self.dataframes_class.get_dataframe_by_name(dfs.get('dates_df')[0]).get_pandas_dataframe()
+        revenue_df = self.dataframes_class.get_dataframe_by_name(dfs.get('revenue_df')[0]).get_pandas_dataframe()
+        time_req_df = self.dataframes_class.get_dataframe_by_name(dfs.get('time_req_df')[0]).get_pandas_dataframe()
         
         time_index = Data_Index(self.dataframes_class).get_index_set('time')
         orders_index = Data_Index(self.dataframes_class).get_orders_set()
@@ -139,13 +143,16 @@ class Data_Builder:
 
             self.index_df_enlarged = True
             
-    def build_indicator(self, new_dataframe_name: str, data_builder_col: str):
+    def build_indicator(self, dataframe_info: list):
         if self.orders_found:
+            new_dataframe_name = dataframe_info[0]
+            keep_cols = dataframe_info[1]
+
             copy_orders_df = self.orders_df.create_copy_for_new_dataframe(new_dataframe_name)
 
             copy_orders_pandas_df = copy_orders_df.get_pandas_dataframe()
 
-            keep_cols = data_builder_columns.get(data_builder_col)
+            #keep_cols = data_builder_columns.get(data_builder_col)
             drop_cols = [col for col in copy_orders_pandas_df.columns if col not in keep_cols]
 
             new_pandas_dataframe = copy_orders_df.get_pandas_dataframe().drop(columns=drop_cols)

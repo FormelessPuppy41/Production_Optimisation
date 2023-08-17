@@ -10,6 +10,7 @@ from general_configuration import path_to_excel
 import pandas as pd
 
 #FIXME: Ask someone how to properly structure a package, such that relative imports work: what to put in __init__.py files.
+import plotly.express as px
 
 
 if re.search('.xlsx', path_to_excel):
@@ -33,6 +34,7 @@ gantt_chart.convert_dataframe()
 gantt_chart.create_ganttchart()
 
 # write tests that check whether feasability is even possible
+
 # Check combinations of order_suborder on a line, and whether lines can preform this suborder.
 # Check whether there is enough timespan to plan all orders. That is per suborder, because if only lines work, then only lines suborders can be scheduled.
 # Check that the inputted indexes are of the correct format, and give a message if they are not. 

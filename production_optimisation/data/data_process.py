@@ -1,4 +1,4 @@
-from general_configuration import path_to_excel, df_reader_helper, all_dataframes, data_builder_columns
+from general_configuration import df_reader_helper, dfs
 from data.data_reader import Data_Reader
 from data.dataframe import Dataframe
 from data.data_cleaner import Data_Cleaner
@@ -19,7 +19,7 @@ class Data_process:
     def process_helper_read_sheets(self, helper_read_dfs_name: str):
         reader = Data_Reader(pandas_excel_file=self.pandas_excel_file)
 
-        self.helper_read_dfs_name = all_dataframes.get(helper_read_dfs_name)
+        self.helper_read_dfs_name = dfs.get(helper_read_dfs_name)[0]
 
         reader.read_all_dataframes(df_reader_helper)
         dataframes_reader = Dataframes(dataframes=reader.get_dataframes())
@@ -45,17 +45,17 @@ class Data_process:
     def process_build_dataframes(self):
         #FIXME: Dictionary: Create a dictionary that 'applies' both, then this can probably be moved to a 'build_all()' function, instead of calling individually.
         builder = Data_Builder(self.dataframes)
-        builder.build_new_df_column_based(all_dataframes.get('time_req_df'), 'time') 
-        builder.build_new_df_column_based(all_dataframes.get('specific_line_df'), 'specific_line')
-        builder.build_new_df_column_based(all_dataframes.get('dates_df'), 'dates')
-        builder.build_new_df_column_based(all_dataframes.get('suborders_df'), 'next_prev_suborder')
-        builder.build_new_df_column_based(all_dataframes.get('revenue_df'), 'revenue')
-        builder.build_new_df_column_based(all_dataframes.get('order_specific_df'), 'specific_orders')
-        builder.build_new_df_column_based(all_dataframes.get('percentage_df'), 'percentage')
+        builder.build_new_df_column_based(dfs.get('time_req_df')) 
+        builder.build_new_df_column_based(dfs.get('specific_line_df'))
+        builder.build_new_df_column_based(dfs.get('dates_df'))
+        builder.build_new_df_column_based(dfs.get('next_prev_suborder_df'))
+        builder.build_new_df_column_based(dfs.get('revenue_df'))
+        builder.build_new_df_column_based(dfs.get('order_specific_df'))
+        builder.build_new_df_column_based(dfs.get('percentage_df'))
         builder.build_penalty_df()
         builder.build_complete_index_sets_df()
 
-        builder.build_indicator(all_dataframes.get('line_indicator'), 'line_indicator')
+        builder.build_indicator(dfs.get('line_indicator_df'))
         
 
     def process_get_index(self, index_set_type: str):

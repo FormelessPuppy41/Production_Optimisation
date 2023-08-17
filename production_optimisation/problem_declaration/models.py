@@ -7,7 +7,7 @@ import logging
 from data.dataframes import Dataframes
 from data.data_index import Data_Index
 
-from general_configuration import all_dataframes
+from general_configuration import all_dataframes, dfs
 
 class EWOptimisation:
     """This class implements the optimisation problem for EW.
@@ -32,9 +32,9 @@ class EWOptimisation:
         employee = self.data_index.get_index_set('employee')
         line = self.data_index.get_index_set('line')
 
-        dates_df = self.dataframes_class.get_dataframe_by_name(all_dataframes.get('dates_df')).get_pandas_dataframe()
-        revenue_df = self.dataframes_class.get_dataframe_by_name(all_dataframes.get('revenue_df')).get_pandas_dataframe()
-        time_req_df = self.dataframes_class.get_dataframe_by_name(all_dataframes.get('time_req_df')).get_pandas_dataframe()
+        dates_df = self.dataframes_class.get_dataframe_by_name(dfs.get('dates_df')[0]).get_pandas_dataframe()
+        revenue_df = self.dataframes_class.get_dataframe_by_name(dfs.get('revenue_df')[0]).get_pandas_dataframe()
+        time_req_df = self.dataframes_class.get_dataframe_by_name(dfs.get('time_req_df')[0]).get_pandas_dataframe()
 
         date_start = dates_df.iloc[:, 0]
         date_deadline = dates_df.iloc[:, 1]
@@ -42,13 +42,13 @@ class EWOptimisation:
         time_req_lb = time_req_df.iloc[:, 0]
         time_req_ub = time_req_df.iloc[:, 1]
 
-        skills_df = self.dataframes_class.get_dataframe_by_name(all_dataframes.get('skills_df')).get_pandas_dataframe()
-        availability_df = self.dataframes_class.get_dataframe_by_name(all_dataframes.get('availability_df')).get_pandas_dataframe()
-        specific_order_suborder = self.dataframes_class.get_dataframe_by_name(all_dataframes.get('order_specific_df')).get_pandas_dataframe()
-        exec_on_line_df = self.dataframes_class.get_dataframe_by_name(all_dataframes.get('line_indicator')).get_pandas_dataframe()
-        penalty_df = self.dataframes_class.get_dataframe_by_name(all_dataframes.get('penalty_df')).get_pandas_dataframe()
-        suborders_df = self.dataframes_class.get_dataframe_by_name(all_dataframes.get('suborders_df')).get_pandas_dataframe()
-        percentage_df = self.dataframes_class.get_dataframe_by_name(all_dataframes.get('percentage_df')).get_pandas_dataframe()
+        skills_df = self.dataframes_class.get_dataframe_by_name(dfs.get('skills_df')[0]).get_pandas_dataframe()
+        availability_df = self.dataframes_class.get_dataframe_by_name(dfs.get('availability_df')[0]).get_pandas_dataframe()
+        specific_order_suborder = self.dataframes_class.get_dataframe_by_name(dfs.get('order_specific_df')[0]).get_pandas_dataframe()
+        exec_on_line_df = self.dataframes_class.get_dataframe_by_name(dfs.get('line_indicator_df')[0]).get_pandas_dataframe()
+        penalty_df = self.dataframes_class.get_dataframe_by_name(dfs.get('penalty_df')[0]).get_pandas_dataframe()
+        suborders_df = self.dataframes_class.get_dataframe_by_name(dfs.get('next_prev_suborder_df')[0]).get_pandas_dataframe()
+        percentage_df = self.dataframes_class.get_dataframe_by_name(dfs.get('percentage_df')[0]).get_pandas_dataframe()
         
         # Dataframe where unique_code can be looked for by using specific order and suborder.
         transpose_specific_order_suborder = specific_order_suborder.copy()
@@ -259,8 +259,6 @@ class EWOptimisation:
 
         results = solver.solve(self.m)
 
-        #print(results)
-
         solution_values = {(i, j, k): self.m.var_alloc[i, j, k].value for (i, j, k) in self.m.set_alloc_index}
 
         index_values = [idx for idx in self.m.set_alloc_index]
@@ -268,9 +266,7 @@ class EWOptimisation:
         column_names = ['order_suborder']
 
         optimal_df = pd.Series(solution_values.values(), index=pd.MultiIndex.from_tuples(index_values, names=index_names))
-        #print(optimal_df)
         optimal_df = optimal_df.unstack(column_names)
-        #print(optimal_df)
 
         self.solution = optimal_df
         self.short_solution = self.solution.copy()[(self.solution!=0).any(axis=1)]

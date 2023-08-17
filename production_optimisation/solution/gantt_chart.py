@@ -6,24 +6,48 @@ import pandas as pd
 
 class GanttChart:
     def __init__(self, dataframe: pd.DataFrame):
-        self.dataframe = dataframe.copy().stack()
-        self.dataDict = self.dataframe.to_dict()
-        print(self.dataframe)
+        self.df = dataframe
     
     def convert_dataframe(self):
-        self.df = pd.DataFrame(self.dataDict.items(), columns=["task", "duration"])
-        self.df[["start_time", "empl_line", "order_suborder"]] = pd.DataFrame(self.df["task"].tolist(), index=self.df.index)
-
-        # Filter out tasks with duration = 0
-        self.df = self.df[self.df["duration"] > 0]
-
-        # Convert "start_time" to datetime
-        self.df["start_time"] = pd.to_datetime(self.df["start_time"])
+        self.df = self.df.copy().stack()
+        self.df = self.df[self.df != 0.0]
+        grouped = self.df.groupby(['time', 'order_suborder']).sum()
+        self.grouped_df = grouped.reset_index()
         
 
     def create_ganttchart(self):
-        fig = px.timeline(self.df, x_start="start_time", x_end="start_time", y="empl_line", title="Gantt Chart")
-        fig.update_yaxes(categoryorder="total ascending")
+        fig, ax = plt.subplots(figsize=(12, 8))
 
-        # Show the Gantt chart
-        fig.show(renderer='chrome')
+        # Loop through each unique 'order_suborder'
+        for order_suborder in self.grouped_df['order_suborder'].unique():
+            subset = self.grouped_df[self.grouped_df['order_suborder'] == order_suborder]
+            
+            # Plot the horizontal bars
+            ax.barh(
+                y=order_suborder,
+                left=subset['time'],
+                width=pd.to_timedelta('1h'),  # Assuming data is hourly
+                height=0.6,
+                align='center',
+                alpha=0.4,
+                label=order_suborder
+            )
+
+        # Customize the plot
+        ax.set_xlabel('Time')
+        ax.set_ylabel('Order_Suborder')
+        ax.set_title('Order Scheduling Gantt Chart')
+        ax.set_xlim(pd.Timestamp('2023-06-19 00:00'), pd.Timestamp('2023-06-20 23:00'))
+        ax.xaxis.grid(True)
+
+        # Format x-axis labels to show time
+        ax.xaxis.set_major_formatter(plt.matplotlib.dates.DateFormatter('%H:%M'))
+
+        # Rotate x-axis labels for better visibility
+        plt.xticks(rotation=0)
+
+        # Add legend
+        ax.legend()
+
+        plt.tight_layout()
+        plt.show()

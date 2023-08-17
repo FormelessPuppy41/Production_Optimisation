@@ -2,14 +2,14 @@ import pandas as pd
 
 from data.dataframe import Dataframe
 from data.dataframes import Dataframes
-from general_configuration import all_dataframes, data_indexes_columns
+from general_configuration import data_indexes_columns, dfs
 
 class Data_Index(Dataframes):
     def __init__(self, dataframes: Dataframes):
         self.dataframes = dataframes
 
-        index_df_name = all_dataframes.get('index_sets_df')
-        orders_df_name = all_dataframes.get('orders_df')
+        index_df_name = dfs.get('index_sets_df')[0]
+        orders_df_name = dfs.get('orders_df')[0]
         try:
             self.index_df = self.dataframes.get_dataframe_by_name(index_df_name)
             self.orders_df = self.dataframes.get_dataframe_by_name(orders_df_name)
