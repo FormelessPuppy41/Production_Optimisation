@@ -4,6 +4,7 @@ import pyomo.environ as pyo
 import pandas as pd
 import logging
 
+from data.dataframe import Dataframe
 from data.dataframes import Dataframes
 from data.data_index import Data_Index
 
@@ -259,6 +260,7 @@ class EWOptimisation:
                 solver.options[option] = value
 
         results = solver.solve(self.m)
+        print(results)
 
         solution_values = {(i, j, k): self.m.var_alloc[i, j, k].value for (i, j, k) in self.m.set_alloc_index}
 
@@ -271,6 +273,12 @@ class EWOptimisation:
 
         self.solution = optimal_df
         self.short_solution = self.solution.copy()[(self.solution!=0).any(axis=1)]
-
+        print(self.short_solution)
+        
         return results
+    
+    def export(self, pandas_excel_file: pd.ExcelFile):
+        self.shortSolution = Dataframe(pandas_excel_file=pandas_excel_file, dataframe_name='solution', excel_sheet_name=dfs.get('solution')[0])
+        self.shortSolution.write_excel_dataframe()
+
 

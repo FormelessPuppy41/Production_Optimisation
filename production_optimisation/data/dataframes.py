@@ -77,3 +77,9 @@ class Dataframes:
             dataframe (Dataframe): Dataframe to add to the list.
         """
         self.dataframes.append(dataframe)
+
+    def print_dataframes(self):
+        for df in self.dataframes:
+            print(df.get_standerd_name_dataframe())
+            print(df.get_pandas_dataframe())
+            print("****")

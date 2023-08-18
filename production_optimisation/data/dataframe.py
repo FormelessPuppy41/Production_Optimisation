@@ -29,9 +29,14 @@ class Dataframe:
             if dfs.get(df)[0] == dataframe_name:
                 self.df_standard_name = df
                 self.filterType = dfs.get(df)[2]
+                break
             elif df == dataframe_name:
                 self.df_standard_name = dataframe_name
                 self.filterType = dfs.get(df)[2]
+                break
+            else:
+                self.filterType = ''
+                self.df_standard_name = df
 
         self.pandas_dataframe = pd.DataFrame
 
@@ -154,3 +159,24 @@ class Dataframe:
         new_df.change_pandas_dataframe(self.get_pandas_dataframe())
         return new_df
 
+
+    def write_excel_dataframe(self):
+        
+        if self.excel_sheet_name is None:
+            raise ValueError("DataFrame does not have its own sheet in the Excel file.")
+        print(self.excel_sheet_name)
+        
+        if self.check_sheet_name_in_excelfile():
+            pd_df = self.get_pandas_dataframe()
+            with pd.ExcelWriter(path=self.excel_file_path, engine='xlsxwriter') as writer:
+                pd_df.to_excel(excel_writer=writer, sheet_name=self.excel_sheet_name, index=True)
+        
+            try:
+                writer.book.filename = 'ElectroWatt_Optimisation.xlsx'
+                writer.save()
+                print("Excel file saved successfully.")
+            except Exception as e:
+                print("An error occurred:", e)
+        else:
+            raise KeyError(f'Sheet name: {self.excel_sheet_name} , not found in the Excel file in path: {self.excel_file_path}')
+    

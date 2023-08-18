@@ -15,8 +15,9 @@ class GanttChart:
     def convert_dataframe(self):
         self.df = self.df.copy().stack()
         self.df = self.df[self.df != 0.0]
-        grouped = self.df.groupby(['time', 'order_suborder']).sum()
+        grouped = self.df.groupby(['order_suborder', 'time']).sum()
         self.grouped_df = grouped.reset_index()
+        print(self.grouped_df)
         
 
     def create_ganttchart(self):
@@ -41,7 +42,7 @@ class GanttChart:
         ax.set_xlabel('Time')
         ax.set_ylabel('Order_Suborder')
         ax.set_title('Order Scheduling Gantt Chart')
-        ax.set_xlim(pd.Timestamp('2023-06-19 00:00'), pd.Timestamp('2023-06-20 23:00'))
+        ax.set_xlim(pd.Timestamp('2023-08-21 00:00'), pd.Timestamp('2023-08-23 23:00')) #FIXME automatically change to starting and ending date.
         ax.xaxis.grid(True)
 
         # Format x-axis labels to show time

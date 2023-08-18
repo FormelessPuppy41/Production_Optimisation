@@ -48,7 +48,6 @@ class Data_Builder:
         if self.orders_found:
             new_dataframe_name = dataframe_info[0]
             keep_cols = dataframe_info[1]
-            print(new_dataframe_name)
             
             copy_orders_df = self.orders_df.create_copy_for_new_dataframe(new_dataframe_name)
 
