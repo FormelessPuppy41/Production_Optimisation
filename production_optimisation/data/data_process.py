@@ -58,9 +58,3 @@ class Data_process:
 
     def process_get_index(self, index_set_type: str):
         return Data_Index(self.dataframes).get_index_set(index_set_type)
-
-
-
-
-
-

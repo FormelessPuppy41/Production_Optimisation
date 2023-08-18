@@ -1,6 +1,7 @@
-
+# Dependencies: Pandas, Pyomo, xlsxwriter, openpyxl
 
 path_to_excel = '/Users/gebruiker/Documents/GitHub/Production_Optimisation/production_optimisation/EW_Optimisation.xlsm'
+
 #"/Users/gebruiker/Dropbox/Werk/BMQSolutions/0_Production_optimisation/ElectroWatt_Optimisation.xlsx"
 time_limit = 60
 

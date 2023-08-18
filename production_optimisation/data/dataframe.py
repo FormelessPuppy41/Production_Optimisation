@@ -1,7 +1,7 @@
 import pandas as pd
 import openpyxl
 
-from general_configuration import dfs
+from general_configuration import dfs, path_to_excel
 
 class Dataframe:
     """The Dataframe class is for dataframes that are read from the (parent class) ExcelFile. 
@@ -168,15 +168,14 @@ class Dataframe:
         
         if self.check_sheet_name_in_excelfile():
             pd_df = self.get_pandas_dataframe()
-            with pd.ExcelWriter(path=self.excel_file_path, engine='xlsxwriter') as writer:
-                pd_df.to_excel(excel_writer=writer, sheet_name=self.excel_sheet_name, index=True)
-        
-            try:
-                writer.book.filename = 'ElectroWatt_Optimisation.xlsx'
-                writer.save()
-                print("Excel file saved successfully.")
-            except Exception as e:
-                print("An error occurred:", e)
+ 
+            if isinstance(pd_df, pd.DataFrame):
+                with pd.ExcelWriter(path=path_to_excel, engine='openpyxl', mode='a', if_sheet_exists='replace') as writer:
+                    pd_df.to_excel(excel_writer=writer, sheet_name=self.excel_sheet_name, index=True)
+            else:
+                raise KeyError(f'No Dataframe given, the given dataframe {pd_df} is another instance.')
+            
+            print("Excel file saved succesfully.")
         else:
             raise KeyError(f'Sheet name: {self.excel_sheet_name} , not found in the Excel file in path: {self.excel_file_path}')
     

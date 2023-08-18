@@ -16,7 +16,7 @@ patterns = '|'.join(re.escape(ext) for ext in patterns_to_search)
 
 if re.search(patterns, path_to_excel):
     excel_file = pd.ExcelFile(path_to_excel)
-    excel_file_write = pd.ExcelFile(path_to_excel)
+    #excel_file_write = pd.ExcelFile(path_to_excel)
 else:
     raise ValueError(f'No excel file found in directory {path_to_excel}')
 
@@ -33,7 +33,8 @@ ewOpt = EWOptimisation(process.dataframes)
 #process.dataframes.print_dataframes()
 ewOpt.createModel()
 ewOpt.solve(solver_options={'timelimit': time_limit})
-#ewOpt.export(pandas_excel_file=excel_file_write)
+ewOpt.export(pandas_excel_file=excel_file) #FIXME: Error after writing to xlsm format, then file corrupted. Possible solution, writing to other file, without macros. or using: 'https://docs.xlwings.org/en/stable/datastructures.html#pandas-dataframes'
+# Also possible that i need to explicitly add the vba code as a file in the repository, and then use writer.vba... = that file. 
 
 gantt_chart = GanttChart(ewOpt.short_solution)
 gantt_chart.convert_dataframe()
@@ -54,4 +55,4 @@ gantt_chart.create_ganttchart()
 # Seperate the constraints into a class, and make functions that apply individual constraints, where multiple functions can be in one
 
 # GANTCHART: line for start and deadline date, for each order a colour, and for each suborder a pattern?, dropdown filters for orders and emplys. scrollable?
-# GANTCHART: How to filter based on the order in a set/list? because not it is done alphabetically => mag mont, smd smd2 instead of mag smd smd2 mont
+# GANTCHART: How to filter based on the order in a set/list? because not it is done alphabetically => mag mont, smd smd2 instead of mag smd smd2 mont, is already in solution_short in models.

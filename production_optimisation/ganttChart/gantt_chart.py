@@ -17,9 +17,8 @@ class GanttChart:
         self.df = self.df[self.df != 0.0]
         grouped = self.df.groupby(['order_suborder', 'time']).sum()
         self.grouped_df = grouped.reset_index()
-        print(self.grouped_df)
         
-
+        
     def create_ganttchart(self):
         fig, ax = self.plt.subplots(figsize=(12, 8))
 

@@ -16,6 +16,8 @@ class EWOptimisation:
     def __init__(self, dataframes_class: Dataframes):
         self.dataframes_class = dataframes_class
         self.data_index = Data_Index(self.dataframes_class)
+        self.excel_file = dataframes_class.get_dataframe_by_index(0).get_excel_file()
+        print(self.excel_file)
 
         self.solution = pd.DataFrame
         self.short_solution = pd.DataFrame
@@ -273,12 +275,15 @@ class EWOptimisation:
 
         self.solution = optimal_df
         self.short_solution = self.solution.copy()[(self.solution!=0).any(axis=1)]
+
+        self.shortSolution = Dataframe(pandas_excel_file=self.excel_file, dataframe_name='solution', excel_sheet_name=dfs.get('solution')[0])
+        self.shortSolution.change_pandas_dataframe(self.short_solution)
         print(self.short_solution)
         
         return results
     
     def export(self, pandas_excel_file: pd.ExcelFile):
-        self.shortSolution = Dataframe(pandas_excel_file=pandas_excel_file, dataframe_name='solution', excel_sheet_name=dfs.get('solution')[0])
+        
         self.shortSolution.write_excel_dataframe()
 
 
