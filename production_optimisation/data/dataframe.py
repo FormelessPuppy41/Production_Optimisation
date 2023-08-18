@@ -170,7 +170,8 @@ class Dataframe:
             pd_df = self.get_pandas_dataframe()
  
             if isinstance(pd_df, pd.DataFrame):
-                with pd.ExcelWriter(path=path_to_excel, engine='openpyxl', mode='a', if_sheet_exists='replace') as writer:
+                with pd.ExcelWriter(path=path_to_excel, engine='openpyxl', mode='a', if_sheet_exists='replace', engine_kwargs={'keep_vba': True}) as writer:
+                    # ERROR: In the future it is possible that this results in an error, because of a bug in pandas. SEE comment of 'eldarmammadov commented on Nov 26, 2022': https://github.com/pandas-dev/pandas/issues/44868
                     pd_df.to_excel(excel_writer=writer, sheet_name=self.excel_sheet_name, index=True)
             else:
                 raise KeyError(f'No Dataframe given, the given dataframe {pd_df} is another instance.')
