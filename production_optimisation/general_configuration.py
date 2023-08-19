@@ -38,10 +38,18 @@ dfs = { # Standard name: [ Name of excelsheet / dataframe, [ columns in (orders)
     'penalty_df': ['penalty', None, None], # build using other, already build, dataframes. 
     'percentage_df': ['percentage', ['Percentage_prev_sub_order_needed_before_next_sub_order'], None],
     'solution_df': ['Planning', None, 0.0] # TO EXCEL, so first entry is sheet to write to. 
+} #FIXME: Split up in different dictionaries for different functions, this is unorganised. make dict for read excel, dict for build, dict for test_validation.
+# Also add an example input like in Feasability_dfs
+
+feasability_dfs = {
+    'EXAMPLE': ['EXAMPLEN_NAME', ['COLUMNS_THAT_BUILDS_DF'], ['SUM_LEAVE_COLUMNS/SUM_OVER_ALL_COLS_EXCEPT..']],
+    'empl_line_vs_Time': ['empl_line_vs_Time', ['empl_line', 'time'], ['allocation']],
+    'order_suborder_vs_empl_line': ['order_suborder_vs_empl_line', ['order_suborder', 'empl_line'], ['allocation']]
 }
 
 dfs_to_build_columnBased = ['time_req_df', 'specific_line_df', 'dates_df', 'next_prev_suborder_df', 'revenue_df', 'order_specific_df', 'percentage_df'] # From orders_df. Strings should be from 'dfs'.
-dfs_to_build_indicatorBased = ['line_indicator_df'] # Strings should be from 'dfs'.
+dfs_to_build_indicatorBased = ['line_indicator_df'] # Strings should be from 'dfs'. 
+#FIXME: These could be removed if the previous fixme about differen dictionaries for the dfs {} is completed. 
 
 data_indexes_columns = { # Column titles of index_sets.
     'order_suborder': 'Orders_suborders',

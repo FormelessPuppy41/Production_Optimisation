@@ -26,12 +26,12 @@ class EWOptimisation:
         self.m = pyo.ConcreteModel()
 
         # Retrieving data
-        order_suborder = self.data_index.get_index_set('order_suborder')
-        suborder_set = self.data_index.get_index_set('suborder')
-        time = self.data_index.get_index_set('time')
-        employee_line = self.data_index.get_index_set('employee_line')
-        employee = self.data_index.get_index_set('employee')
-        line = self.data_index.get_index_set('line')
+        self.list_order_suborder = self.data_index.get_index_set('order_suborder')
+        self.list_suborder_set = self.data_index.get_index_set('suborder')
+        self.list_time = self.data_index.get_index_set('time')
+        self.list_employee_line = self.data_index.get_index_set('employee_line')
+        self.list_employee = self.data_index.get_index_set('employee')
+        self.list_line = self.data_index.get_index_set('line')
 
         dates_df = self.dataframes_class.get_dataframe_by_name('dates_df').get_pandas_dataframe()
         revenue_df = self.dataframes_class.get_dataframe_by_name('revenue_df').get_pandas_dataframe()
@@ -60,11 +60,11 @@ class EWOptimisation:
         transpose_specific_order_suborder.set_index(transpose_index, inplace=True)
 
         # Create sets
-        self.m.set_order_suborder = pyo.Set(initialize=order_suborder)
-        self.m.set_time = pyo.Set(initialize=time)
-        self.m.set_employee_line = pyo.Set(initialize=employee_line)
-        self.m.set_employee = pyo.Set(initialize=employee)
-        self.m.set_line = pyo.Set(initialize=line)
+        self.m.set_order_suborder = pyo.Set(initialize=self.list_order_suborder)
+        self.m.set_time = pyo.Set(initialize=self.list_time)
+        self.m.set_employee_line = pyo.Set(initialize=self.list_employee_line)
+        self.m.set_employee = pyo.Set(initialize=self.list_employee)
+        self.m.set_line = pyo.Set(initialize=self.list_line)
         
         self.m.set_alloc_index = pyo.Set(initialize=self.m.set_order_suborder * self.m.set_time * self.m.set_employee_line)
         self.upperbound = len(self.m.set_order_suborder)*len(self.m.set_time)*len(self.m.set_employee_line)
@@ -183,10 +183,10 @@ class EWOptimisation:
             suborder = specific_order_suborder.loc[i].iloc[1]
             percentage = percentage_df.loc[i].iloc[0]
 
-            prev_suborder_index = suborder_set.index(suborder) - 1
+            prev_suborder_index = self.list_suborder_set.index(suborder) - 1
 
             while prev_suborder_index > 0:
-                prev_suborder = suborder_set[prev_suborder_index]
+                prev_suborder = self.list_suborder_set[prev_suborder_index]
                 try:
                     prev_order_suborder = transpose_specific_order_suborder.loc[order, prev_suborder].iloc[0]
                     break # valid suborder found
