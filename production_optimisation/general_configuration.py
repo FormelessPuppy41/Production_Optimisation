@@ -44,7 +44,8 @@ dfs = { # Standard name: [ Name of excelsheet / dataframe, [ columns in (orders)
 feasability_dfs = {
     'EXAMPLE': ['EXAMPLEN_NAME', ['COLUMNS_THAT_BUILDS_DF'], ['SUM_LEAVE_COLUMNS/SUM_OVER_ALL_COLS_EXCEPT..']],
     'empl_line_vs_Time': ['empl_line_vs_Time', ['empl_line', 'time'], ['allocation']],
-    'order_suborder_vs_empl_line': ['order_suborder_vs_empl_line', ['order_suborder', 'empl_line'], ['allocation']]
+    'order_suborder_vs_empl_line': ['order_suborder_vs_empl_line', ['order_suborder', 'empl_line'], ['allocation']], 
+    'order_suborder_vs_allocation': ['order_suborder_vs_allocation', ['order_suborder'], ['allocation']]
 }
 
 dfs_to_build_columnBased = ['time_req_df', 'specific_line_df', 'dates_df', 'next_prev_suborder_df', 'revenue_df', 'order_specific_df', 'percentage_df'] # From orders_df. Strings should be from 'dfs'.

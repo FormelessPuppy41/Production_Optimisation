@@ -27,12 +27,14 @@ class SolvabilityTest:
             self.availability_df = self.dataframes_class.get_dataframe_by_name('availability_df').get_pandas_dataframe().copy()
             self.specific_order_suborder_df = self.dataframes_class.get_dataframe_by_name('order_specific_df').get_pandas_dataframe().copy()
             self.skills_df = self.dataframes_class.get_dataframe_by_name('skills_df').get_pandas_dataframe().copy()
+            self.required_hours_df = self.dataframes_class.get_dataframe_by_name('time_req_df').get_pandas_dataframe().copy()
 
         
         def checkAll(self):
-            self.checkAvailabilityForManualPlanning(self)
-            self.checkSkillForManualPlanning(self)
-            self.checkHoursPlannedPerEmpl_linePerTimeForManualPlanning(self)
+            self.checkAvailabilityForManualPlanning()
+            self.checkSkillForManualPlanning()
+            self.checkHoursPlannedPerEmpl_linePerTimeForManualPlanning()
+            self.checkRequiredHoursPlannedUpperboundForManualPlanning()
 
         def checkManualPlanning(self):
             pass # find a way to combine the next functions into this one, such that they can only be called from this function.
@@ -56,9 +58,9 @@ class SolvabilityTest:
                         failed_combinations.append([empl_line, time])
             
             if requirement_failed == True:
-                print('Availability restriciton not met in Manual_planning')
+                print('"Empl_line should be available when planned" restriciton not met in Manual_planning')
                 print(f'The following combinations where the cause of the failed requirements: \n {failed_combinations}')
-                raise ValueError(f'Available restriction not met in Manual_planning, the following combinations where the cause: {failed_combinations}')
+                raise ValueError(f'"Empl_line should be available when planned" restriction not met in Manual_planning, the following combinations where the cause: {failed_combinations}')
 
         def checkSkillForManualPlanning(self):
             order_suborderEmpl_line_help = self.manual_planning_df.copy().reset_index()
@@ -82,9 +84,9 @@ class SolvabilityTest:
                     failed_combinations.append([order_suborder, suborder, empl_line])
             
             if requirement_failed == True:
-                print('Skills restriciton not met in Manual_planning')
+                print('"Empl_line should posses skills for planned suborder" restriciton not met in Manual_planning')
                 print(f'The following combinations where the cause of the failed requirements: \n {failed_combinations}')
-                raise ValueError(f'Skills restriction not met in Manual_planning, the following combinations where the cause: {failed_combinations}')
+                raise ValueError(f'"Empl_line should posses skills for planned suborder" restriction not met in Manual_planning, the following combinations where the cause: {failed_combinations}')
 
         def checkHoursPlannedPerEmpl_linePerTimeForManualPlanning(self):
             #FIXME: Double check also the first checker, there it is also used, perhaps there is an easy way to make this accessable in all checks. 
@@ -96,7 +98,7 @@ class SolvabilityTest:
 
             requirement_failed = False
             failed_combinations = []
-            print(empl_lineTime)
+            
             for idx in empl_lineTime.index:
                 empl_line = idx[0]
                 time = idx[1]
@@ -105,9 +107,35 @@ class SolvabilityTest:
                     failed_combinations.append([empl_line, time])
             
             if requirement_failed == True:
-                print('Hours planned per empl_line at given moment restriciton is not met in Manual_planning')
+                print('"Hours planned per empl_line at given moment" restriciton is not met in Manual_planning')
                 print(f'The following combinations where the cause of the failed requirements: \n {failed_combinations}')
-                raise ValueError(f'Hours planned per empl_line at given moment restriction is not met in Manual_planning, the following combinations where the cause: {failed_combinations}')
+                raise ValueError(f'"Hours planned per empl_line at given moment" restriction is not met in Manual_planning, the following combinations where the cause: {failed_combinations}')
+
+        def checkRequiredHoursPlannedUpperboundForManualPlanning(self):
+            # Possibly also add the old planning? because that is taken as an absolute aswell. 
+            requiredHoursPlanned_help = self.manual_planning_df.copy().reset_index()
+            
+            group_cols = feasability_dfs.get('order_suborder_vs_allocation')[1]
+            sum_col = feasability_dfs.get('order_suborder_vs_allocation')[2]
+            requiredHoursPlanned: pd.DataFrame = requiredHoursPlanned_help.groupby(group_cols)[sum_col].sum()
+            
+            requirement_failed = False
+            failed_combinations = []
+
+            for idx in requiredHoursPlanned.index:
+                order_suborder = idx
+                upperbound = self.required_hours_df.loc[order_suborder].iloc[1]
+
+                if (requiredHoursPlanned.loc[order_suborder] > upperbound).any():
+                    requirement_failed = True
+                    excess_hours = (requiredHoursPlanned.loc[order_suborder] - upperbound).values.item()
+                    
+                    failed_combinations.append([order_suborder, f'X excess hours planned, with X={excess_hours}'])
+            
+            if requirement_failed == True:
+                print('"Hours planned for order_suborder less than or equal to upperbound" restriciton is not met in Manual_planning')
+                print(f'The following combinations where the cause of the failed requirements: \n {failed_combinations}')
+                raise ValueError(f'"Hours planned for order_suborder less than or equal to upperbound" restriction is not met in Manual_planning, the following combinations where the cause: {failed_combinations}')
 
 
                 
