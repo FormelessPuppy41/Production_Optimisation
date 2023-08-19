@@ -54,7 +54,7 @@ gantt_chart.show_plt()"""
 # Check: Lb and ub must be whole multliple of timespan of timeintervals.
 
 
-# ADD: manual urgency in penalty. and minimize gaps.
+# ADD: manual urgency in penalty. and minimize gaps, also minimize gaps between prev/next suborders. 
 # ADD: Constraint that minimizes amount of workers. But also a worker cannot work more than x hours per week. 
 # this might be possible by solving the 'subproblem' of allocation the workers on the orders, based on a penalty matrix for those workers, for example based on skills (needed for order) and cost per hour. 
 # ADD: actual skill level on both orders and employees, because some workers can preform more difficult tasks than others.
@@ -63,6 +63,9 @@ gantt_chart.show_plt()"""
 
 # GANTCHART: line for start and deadline date, for each order a colour, and for each suborder a pattern?, dropdown filters for orders and emplys. scrollable?
 # GANTCHART: How to filter based on the order in a set/list? because not it is done alphabetically => mag mont, smd smd2 instead of mag smd smd2 mont, is already in solution_short in models.
+# GANTCHART: Also add a chart that shows the individual schedules of employees. 
 
 # ADDING VBA to automatically close and run the python optimisation and then reopening the excel file. 
 # Aslo add a vba function that filters the manual input such that the orders are clustered, this way there is a better overview of all the manual inputs for orders. 
+
+# Add a backreading of new start and end dates for the orders.
