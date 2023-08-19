@@ -168,13 +168,14 @@ class Dataframe:
         
         if self.check_sheet_name_in_excelfile():
             pd_df = self.get_pandas_dataframe()
+            print(pd_df)
  
-            if isinstance(pd_df, pd.DataFrame):
+            if isinstance(pd_df, (pd.DataFrame, pd.Series)):
                 with pd.ExcelWriter(path=path_to_excel, engine='openpyxl', mode='a', if_sheet_exists='replace', engine_kwargs={'keep_vba': True}) as writer:
                     # ERROR: In the future it is possible that this results in an error, because of a bug in pandas. SEE comment of 'eldarmammadov commented on Nov 26, 2022': https://github.com/pandas-dev/pandas/issues/44868
                     pd_df.to_excel(excel_writer=writer, sheet_name=self.excel_sheet_name, index=True)
             else:
-                raise KeyError(f'No Dataframe given, the given dataframe {pd_df} is another instance.')
+                raise KeyError(f'No Dataframe instance given, the given dataframe is of another instance: {type(pd_df)}')
             
             print("Excel file saved succesfully.")
         else:

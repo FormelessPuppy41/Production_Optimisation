@@ -28,14 +28,15 @@ process.process_read_dataframes()
 process.process_build_dataframes()
 
 excel_file.close()
-
 ewOpt = EWOptimisation(process.dataframes)
 #process.dataframes.print_dataframes()
 ewOpt.createModel()
 ewOpt.solve(solver_options={'timelimit': time_limit})
-ewOpt.export(pandas_excel_file=excel_file) #FIXME: Error after writing to xlsm format, then file corrupted. Possible solution, writing to other file, without macros. or using: 'https://docs.xlwings.org/en/stable/datastructures.html#pandas-dataframes'
+#ewOpt.export() 
+#FIXME: Error after writing to xlsm format, then file corrupted. Possible solution, writing to other file, without macros. or using: 'https://docs.xlwings.org/en/stable/datastructures.html#pandas-dataframes'
 # Also possible that i need to explicitly add the vba code as a file in the repository, and then use writer.vba... = that file. 
 #FIXME: Previous problem possibly fixed, but now look at format after writing, how to change this. 
+
 gantt_chart = GanttChart(ewOpt.short_solution)
 gantt_chart.convert_dataframe()
 gantt_chart.create_ganttchart()
@@ -56,3 +57,6 @@ gantt_chart.create_ganttchart()
 
 # GANTCHART: line for start and deadline date, for each order a colour, and for each suborder a pattern?, dropdown filters for orders and emplys. scrollable?
 # GANTCHART: How to filter based on the order in a set/list? because not it is done alphabetically => mag mont, smd smd2 instead of mag smd smd2 mont, is already in solution_short in models.
+
+
+# ADDING VBA to automatically close and run the python optimisation and then reopening the excel file. 

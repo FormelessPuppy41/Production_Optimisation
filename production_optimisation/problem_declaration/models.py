@@ -8,7 +8,7 @@ from data.dataframe import Dataframe
 from data.dataframes import Dataframes
 from data.data_index import Data_Index
 
-from general_configuration import dfs
+from general_configuration import dfs, old_planning_limit
 
 class EWOptimisation:
     """This class implements the optimisation problem for EW.
@@ -17,12 +17,10 @@ class EWOptimisation:
         self.dataframes_class = dataframes_class
         self.data_index = Data_Index(self.dataframes_class)
         self.excel_file = dataframes_class.get_dataframe_by_index(0).get_excel_file()
-        print(self.excel_file)
 
         self.solution = pd.DataFrame
         self.short_solution = pd.DataFrame
         
-
     
     def createModel(self):
         self.m = pyo.ConcreteModel()
@@ -52,7 +50,8 @@ class EWOptimisation:
         penalty_df = self.dataframes_class.get_dataframe_by_name('penalty_df').get_pandas_dataframe()
         suborders_df = self.dataframes_class.get_dataframe_by_name('next_prev_suborder_df').get_pandas_dataframe()
         percentage_df = self.dataframes_class.get_dataframe_by_name('percentage_df').get_pandas_dataframe()
-        
+        old_planning_df = self.dataframes_class.get_dataframe_by_name('old_planning_df').get_pandas_dataframe()
+
         # Dataframe where unique_code can be looked for by using specific order and suborder.
         transpose_specific_order_suborder = specific_order_suborder.copy()
         transpose_index = specific_order_suborder.columns.to_list()
@@ -252,6 +251,18 @@ class EWOptimisation:
                 return pyo.Constraint.Skip
         self.m.constr_manualOrdersForEmployee = pyo.Constraint(self.m.set_order_suborder, self.m.set_time, self.m.set_line, rule=rule_manualOrdersForEmployee)
 
+        def rule_oldPlanning(m, i, j, k):
+            if j <= pd.to_datetime(old_planning_limit, format='%d-%m-%Y %H:%M:%S'):
+                try:
+                    if old_planning_df.loc[i, j, k].iloc[0] == 1:
+                        return m.var_alloc[(i, j, k)] == old_planning_df.loc[i, j, k].iloc[0]
+                    else:
+                        return pyo.Constraint.Skip
+                except:
+                    return pyo.Constraint.Skip
+            else:
+                return pyo.Constraint.Skip
+        self.m.constr_oldPlanning = pyo.Constraint(self.m.set_order_suborder, self.m.set_time, self.m.set_line, rule=rule_oldPlanning)
 
     def solve(self, solver_options=None):
         solver = pyo.SolverFactory('cbc')
@@ -271,19 +282,15 @@ class EWOptimisation:
         column_names = ['order_suborder']
 
         optimal_df = pd.Series(solution_values.values(), index=pd.MultiIndex.from_tuples(index_values, names=index_names))
-        optimal_df = optimal_df.unstack(column_names)
-
+        #optimal_df = optimal_df.groupby(['time', 'order_suborder', 'empl_line'])
         self.solution = optimal_df
-        self.short_solution = self.solution.copy()[(self.solution!=0).any(axis=1)]
+        self.short_solution = self.solution.copy()[(self.solution!=0)]#.any(axis=1)]
 
-        self.shortSolution = Dataframe(pandas_excel_file=self.excel_file, dataframe_name='solution', excel_sheet_name=dfs.get('solution')[0])
+        self.shortSolution = Dataframe(pandas_excel_file=self.excel_file, dataframe_name='solution_df', excel_sheet_name=dfs.get('solution_df')[0])
         self.shortSolution.change_pandas_dataframe(self.short_solution)
-        print(self.short_solution)
-        
         return results
     
-    def export(self, pandas_excel_file: pd.ExcelFile):
-        
+    def export(self):
         self.shortSolution.write_excel_dataframe()
 
 

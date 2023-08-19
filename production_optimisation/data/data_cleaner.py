@@ -37,7 +37,8 @@ class Data_Cleaner:
                 self.change_df_index_to_one()
             elif sheet_type == sheet_types.get('index_sets'):
                 self.clean_index_sets_df()
-
+            elif sheet_type == sheet_types.get('planning'):
+                self.clean_planning_df()
 
 
     # Clean functions for the actual dataframes.
@@ -70,7 +71,6 @@ class Data_Cleaner:
             
             self.dataframe.change_pandas_dataframe(self.pandas_df)
             self.dataframe.change_status_to_cleaned()
-
 
 
     # Helper functions for cleaning:
@@ -123,4 +123,13 @@ class Data_Cleaner:
             columns = self.pandas_df.columns
             self.pandas_df = self.pandas_df.set_index(columns[0])
 
+            self.dataframe.change_pandas_dataframe(self.pandas_df)
+
+    
+    def clean_planning_df(self):
+        if not self.pandas_df.empty:
+            columns = self.pandas_df.columns.to_list()
+            index_columns = [idx for idx in columns if columns.index(idx) <= 2]
+
+            self.pandas_df = self.pandas_df.set_index(index_columns)
             self.dataframe.change_pandas_dataframe(self.pandas_df)
