@@ -51,6 +51,7 @@ class EWOptimisation:
         suborders_df = self.dataframes_class.get_dataframe_by_name('next_prev_suborder_df').get_pandas_dataframe()
         percentage_df = self.dataframes_class.get_dataframe_by_name('percentage_df').get_pandas_dataframe()
         old_planning_df = self.dataframes_class.get_dataframe_by_name('old_planning_df').get_pandas_dataframe()
+        manual_planning_df = self.dataframes_class.get_dataframe_by_name('manual_planning_df').get_pandas_dataframe()
 
         # Dataframe where unique_code can be looked for by using specific order and suborder.
         transpose_specific_order_suborder = specific_order_suborder.copy()
@@ -262,7 +263,22 @@ class EWOptimisation:
                     return pyo.Constraint.Skip
             else:
                 return pyo.Constraint.Skip
-        self.m.constr_oldPlanning = pyo.Constraint(self.m.set_order_suborder, self.m.set_time, self.m.set_line, rule=rule_oldPlanning)
+        self.m.constr_oldPlanning = pyo.Constraint(self.m.set_order_suborder, self.m.set_time, self.m.set_employee_line, rule=rule_oldPlanning)
+
+        def rule_manualPlanning(m, i, j, k):
+            try:
+                #print(i, j, k)
+                #print(manual_planning_df.loc[i, j, k].iloc[0])
+                #if manual_planning_df.loc[i, j, k].iloc[0]:
+                    #print(manual_planning_df.loc[i, j, k].iloc[0])
+                if manual_planning_df.loc[i, j, k].iloc[0] == 1.0:
+                    #print('waw')
+                    return m.var_alloc[(i, j, k)] == manual_planning_df.loc[i, j, k].iloc[0]
+                else:
+                    return pyo.Constraint.Skip
+            except:
+                return pyo.Constraint.Skip
+        self.m.constr_manualPlanning = pyo.Constraint(self.m.set_order_suborder, self.m.set_time, self.m.set_employee_line, rule=rule_manualPlanning)
 
     def solve(self, solver_options=None):
         solver = pyo.SolverFactory('cbc')

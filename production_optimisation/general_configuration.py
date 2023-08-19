@@ -14,7 +14,8 @@ sheet_types = { # Should be compatable with 'type of sheets' in 'config_main'
     'index_sets': 'df_sets_of_index', 
     'orders': 'df_orders', 
     'index_in_col_A': 'df_index1',
-    'planning': 'df_planning'
+    'planning': 'df_planning',
+    'manual_planning': 'df_manual_planning'
 }
 
 description_order_df = 'Description' # in cleaning the 'description columns' of the orders_dataframe should not be 'cleaned' that is turned to uppercase, because then the description might become unreadable.
@@ -26,7 +27,7 @@ dfs = { # Standard name: [ Name of excelsheet / dataframe, [ columns in (orders)
     'availability_df': ['Config_availability', None, 0.0], # read from excel
     'skills_df': ['Config_skills', None, 0.0], # read from excel
     'old_planning_df':['Planning', None, 0.0], # read from excel
-    'manual_planning_df':['man_planning', None, 0.0], # read from excel
+    'manual_planning_df':['Manual_planning', None, 0.0], # read from excel
     'time_req_df': ['Time_required_per_order', ['Time_hours_lowerbound', 'Time_hours_upperbound'], None],
     'specific_line_df': ['Production_specific_line', ['Production_line_specific_line'], None],
     'dates_df': ['dates_start_deadline', ['Date_start', 'Date_deadline'], None],

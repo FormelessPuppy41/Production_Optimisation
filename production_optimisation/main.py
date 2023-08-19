@@ -33,9 +33,8 @@ ewOpt = EWOptimisation(process.dataframes)
 ewOpt.createModel()
 ewOpt.solve(solver_options={'timelimit': time_limit})
 #ewOpt.export() 
-#FIXME: Error after writing to xlsm format, then file corrupted. Possible solution, writing to other file, without macros. or using: 'https://docs.xlwings.org/en/stable/datastructures.html#pandas-dataframes'
-# Also possible that i need to explicitly add the vba code as a file in the repository, and then use writer.vba... = that file. 
-#FIXME: Previous problem possibly fixed, but now look at format after writing, how to change this. 
+
+#FIXME: Manual and old planning.
 
 gantt_chart = GanttChart(ewOpt.short_solution)
 gantt_chart.convert_dataframe()

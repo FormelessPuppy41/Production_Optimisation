@@ -90,11 +90,19 @@ class Dataframe:
         
         
         if self.check_sheet_name_in_excelfile():
-            self.pandas_dataframe = pd.read_excel(
-                io=self.excel_file_path,
-                sheet_name=self.excel_sheet_name,
-                engine='openpyxl'
-            ).fillna(self.filterType)
+            if self.df_standard_name == 'manual_planning_df':
+                self.pandas_dataframe = pd.read_excel(
+                    io=self.excel_file_path,
+                    sheet_name=self.excel_sheet_name,
+                    engine='openpyxl',
+                    index_col=[0, 1]
+                ).fillna(self.filterType)
+            else:
+                self.pandas_dataframe = pd.read_excel(
+                    io=self.excel_file_path,
+                    sheet_name=self.excel_sheet_name,
+                    engine='openpyxl'
+                ).fillna(self.filterType)
         else:
             raise KeyError(f'Sheet name: {self.excel_sheet_name} , not found in the Excel file in path: {self.excel_file_path}')
     

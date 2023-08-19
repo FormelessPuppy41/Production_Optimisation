@@ -39,6 +39,10 @@ class Data_Cleaner:
                 self.clean_index_sets_df()
             elif sheet_type == sheet_types.get('planning'):
                 self.clean_planning_df()
+            elif sheet_type == sheet_types.get('manual_planning'):
+                self.clean_manual_planning_df()
+            
+            self.dataframe.change_status_to_cleaned()
 
 
     # Clean functions for the actual dataframes.
@@ -133,3 +137,19 @@ class Data_Cleaner:
 
             self.pandas_df = self.pandas_df.set_index(index_columns)
             self.dataframe.change_pandas_dataframe(self.pandas_df)
+
+            self.dataframe.change_status_to_cleaned()
+
+    def clean_manual_planning_df(self):
+        if not self.pandas_df.empty:
+            #new_cols = [pd.to_datetime(col, format="%Y-%m-%d %H:%M:%S") for col in self.pandas_df.columns]
+            #self.pandas_df.columns = new_cols
+            self.pandas_df = self.pandas_df.rename_axis('time', axis=1)
+            self.pandas_df = self.pandas_df.stack()
+            self.pandas_df = self.pandas_df.reset_index().set_index(['order_suborder', 'time', 'empl_line'])
+            
+            self.pandas_df = self.pandas_df[self.pandas_df[0] != 0.0]
+            
+            self.dataframe.change_pandas_dataframe(self.pandas_df)
+
+            self.dataframe.change_status_to_cleaned()
