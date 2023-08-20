@@ -51,6 +51,7 @@ class Data_process:
 
         builder.build_penalty_df()
         builder.build_complete_index_sets_df()
+        builder.build_old_and_manual_planning_df()
 
         for df_name in dfs_to_build_indicatorBased:
             builder.build_indicator(dfs.get(df_name))

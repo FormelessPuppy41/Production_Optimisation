@@ -7,7 +7,7 @@ from data.dataframes import Dataframes
 from data.data_cleaner import Data_Cleaner
 from data.data_index import Data_Index
 
-from general_configuration import data_indexes_columns
+from general_configuration import data_indexes_columns, old_planning_limit
 
 class Data_Builder:
     def __init__(self, dataframes_class: Dataframes):
@@ -64,10 +64,30 @@ class Data_Builder:
             self.dataframes_class.append_dataframe(new_dataframe)
 
 
-    def build_old_planning_df(self, column_names: str):
-        pass
-    def build_manual_planning_df(self, column_names: str):
-        pass
+    def build_old_and_manual_planning_df(self): #FIXME: the concatenation does not go right. If fixed do note that the old and manual constraint are still seperate => infeasable solution.
+        manual_planning_df = self.dataframes_class.get_dataframe_by_name('manual_planning_df').get_pandas_dataframe().copy()
+        old_planning_df = self.dataframes_class.get_dataframe_by_name('old_planning_df').get_pandas_dataframe().copy()
+
+        print(manual_planning_df)
+        print(old_planning_df)
+
+        old_index = old_planning_df.index
+        old_planning_df = old_planning_df.reset_index()
+
+        condition_old = old_planning_df['time'] <= pd.to_datetime(old_planning_limit, format='%d-%m-%Y %H:%M:%S')
+
+        old_planning_df = old_planning_df[condition_old]
+        old_planning_df = old_planning_df.set_index(old_index)
+
+        combined_df = pd.concat([old_planning_df, manual_planning_df], join='outer').stack()
+        print(combined_df)
+        combined_series = combined_df['allocation'].stack()
+        print(combined_series)
+
+        old_and_manual_df = Dataframe(self.excel_file, 'old_and_manual_planning_df', None)
+        old_and_manual_df.change_pandas_dataframe(combined_df)
+        
+        self.dataframes_class.append_dataframe(old_and_manual_df)
 
 
     def build_penalty_df(self):

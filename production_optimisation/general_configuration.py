@@ -4,7 +4,7 @@ path_to_excel = '/Users/gebruiker/Documents/GitHub/Production_Optimisation/produ
 
 #"/Users/gebruiker/Dropbox/Werk/BMQSolutions/0_Production_optimisation/ElectroWatt_Optimisation.xlsx"
 time_limit = 60
-old_planning_limit = '21-08-2023 14:00:00'
+old_planning_limit = '21-08-2023 14:00:00' # format is important, see the format in the olplanning constraint.
 
 df_reader_helper = ['helper_read_sheets'] # Sheet that contains information about all the other sheets. Possible to rename to 'sheet1', that way it is standardized, but also this is standardized as long as you dont change the name. 
 
@@ -36,6 +36,7 @@ dfs = { # Standard name: [ Name of excelsheet / dataframe, [ columns in (orders)
     'order_specific_df': ['Order_specific', ['Order_number', 'Sub_order'], None],
     'line_indicator_df': ['line_indicator',  ['On_line'], None],
     'penalty_df': ['penalty', None, None], # build using other, already build, dataframes. 
+    'old_and_manual_planning_df': ['old_and_manual_planning_df', None, None],
     'percentage_df': ['percentage', ['Percentage_prev_sub_order_needed_before_next_sub_order'], None],
     'solution_df': ['Planning', None, 0.0] # TO EXCEL, so first entry is sheet to write to. 
 } #FIXME: Split up in different dictionaries for different functions, this is unorganised. make dict for read excel, dict for build, dict for test_validation.

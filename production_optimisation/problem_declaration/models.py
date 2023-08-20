@@ -255,8 +255,9 @@ class EWOptimisation:
         def rule_oldPlanning(m, i, j, k):
             if j <= pd.to_datetime(old_planning_limit, format='%d-%m-%Y %H:%M:%S'):
                 try:
-                    if old_planning_df.loc[i, j, k].iloc[0] == 1:
-                        return m.var_alloc[(i, j, k)] == old_planning_df.loc[i, j, k].iloc[0]
+                    if old_planning_df.loc[i, j, k] == 1:
+                        #print(old_planning_df)
+                        return m.var_alloc[(i, j, k)] == int(old_planning_df.loc[i, j, k])
                     else:
                         return pyo.Constraint.Skip
                 except:
@@ -267,20 +268,19 @@ class EWOptimisation:
 
         def rule_manualPlanning(m, i, j, k):
             try:
-                #print(i, j, k)
-                #print(manual_planning_df.loc[i, j, k].iloc[0])
-                #if manual_planning_df.loc[i, j, k].iloc[0]:
-                    #print(manual_planning_df.loc[i, j, k].iloc[0])
-                if manual_planning_df.loc[i, j, k].iloc[0] == 1.0:
+                if manual_planning_df.loc[i, j, k] == 1.0:
+                    #print(manual_planning_df)
+                    #print(int(manual_planning_df.loc[i, j, k]))
                     #print('waw')
-                    return m.var_alloc[(i, j, k)] == manual_planning_df.loc[i, j, k].iloc[0]
+                    return m.var_alloc[(i, j, k)] == int(manual_planning_df.loc[i, j, k])
                 else:
                     return pyo.Constraint.Skip
             except:
                 return pyo.Constraint.Skip
         self.m.constr_manualPlanning = pyo.Constraint(self.m.set_order_suborder, self.m.set_time, self.m.set_employee_line, rule=rule_manualPlanning)
 
-    def solve(self, solver_options=None):
+    def solve(self, solver_options=None): #FIXME: Problem is with multiple constraints for the same index combination in manual and old planning => contraciting values. Because only executing one or the other does work. Possibly make it the same as the checkers of planning data from excel, that is, 
+        #loop through the indexes of the df's and only execute if present or use one constraint with the concatenated dataframe of the two, this way only one constraint is build for each index. BUT this does give into complications with the restrictionline of old planning, but it is possible to filter filter oldplanning based on that criterea. and then concatenate
         solver = pyo.SolverFactory('cbc')
 
         # Set solver options if provided
@@ -304,6 +304,8 @@ class EWOptimisation:
 
         self.shortSolution = Dataframe(pandas_excel_file=self.excel_file, dataframe_name='solution_df', excel_sheet_name=dfs.get('solution_df')[0])
         self.shortSolution.change_pandas_dataframe(self.short_solution)
+
+        print(self.short_solution)
         return results
     
     def export(self):

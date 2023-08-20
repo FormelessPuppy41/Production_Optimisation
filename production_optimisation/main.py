@@ -33,17 +33,27 @@ ewOpt = EWOptimisation(process.dataframes)
 #process.dataframes.print_dataframes()
 ewOpt.createModel()
 
-solv_test = SolvabilityTest().TestManualPlanningEW(ewOpt)
+solv_test = SolvabilityTest().TestPlanningEW(ewOpt) #FIXME:FIXME:FIXME: The problem with the old/manual planning is that they cannot be preformed at the same time. This results in errors. So we have to find a way to sepearte them, such that they only get the allocation needed. 
+#Also what if old and manual planning both have the same values, then the concat would result in a 2.0 value => out of bounds of binairy, so how to fix this. Or is this already checked via the hoursplannedperempllinepermoment requirement for oldjoinedmanual
 solv_test.checkAll()
 
-"""ewOpt.solve(solver_options={'timelimit': time_limit})
+ewOpt.solve(solver_options={'timelimit': time_limit})
 #ewOpt.export() 
 
 
-gantt_chart = GanttChart(ewOpt.short_solution)
-gantt_chart.convert_dataframe()
-gantt_chart.create_ganttchart()
-gantt_chart.show_plt()"""
+#gantt_chart = GanttChart(ewOpt.short_solution)
+#gantt_chart.convert_dataframe()
+#gantt_chart.create_ganttchart()
+#gantt_chart.show_plt()
+
+
+
+
+
+
+
+
+
 
 # Improve the dataclass: make subclasses for the different dataframes, that is, order_df gets it's own class within dataframe. Here all the unique features for example cleaning or reading rules can be specified, this way many of the modules can be 'removed' because they can be reorginazed into these subclasses.
 
