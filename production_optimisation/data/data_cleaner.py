@@ -134,9 +134,9 @@ class Data_Cleaner:
         if not self.pandas_df.empty:
             columns = self.pandas_df.columns.to_list()
             index_columns = [idx for idx in columns if columns.index(idx) <= 2]
-
-            self.pandas_df = self.pandas_df.set_index(index_columns)[0].squeeze()
-            self.pandas_df.name = 'allocation'
+            self.pandas_df = self.pandas_df.set_index(index_columns)
+            self.pandas_df.columns = ['allocation']
+            self.pandas_df = self.pandas_df['allocation'].squeeze()
 
             self.pandas_df = self.pandas_df[self.pandas_df != 0.0]
         

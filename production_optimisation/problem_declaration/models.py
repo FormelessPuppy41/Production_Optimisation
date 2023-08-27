@@ -52,6 +52,7 @@ class EWOptimisation:
         percentage_df = self.dataframes_class.get_dataframe_by_name('percentage_df').get_pandas_dataframe()
         old_planning_df = self.dataframes_class.get_dataframe_by_name('old_planning_df').get_pandas_dataframe()
         manual_planning_df = self.dataframes_class.get_dataframe_by_name('manual_planning_df').get_pandas_dataframe()
+        combined_planning_df = self.dataframes_class.get_dataframe_by_name('old_and_manual_planning_df').get_pandas_dataframe()
 
         # Dataframe where unique_code can be looked for by using specific order and suborder.
         transpose_specific_order_suborder = specific_order_suborder.copy()
@@ -264,7 +265,7 @@ class EWOptimisation:
                     return pyo.Constraint.Skip
             else:
                 return pyo.Constraint.Skip
-        self.m.constr_oldPlanning = pyo.Constraint(self.m.set_order_suborder, self.m.set_time, self.m.set_employee_line, rule=rule_oldPlanning)
+        #self.m.constr_oldPlanning = pyo.Constraint(self.m.set_order_suborder, self.m.set_time, self.m.set_employee_line, rule=rule_oldPlanning)
 
         def rule_manualPlanning(m, i, j, k):
             try:
@@ -277,8 +278,20 @@ class EWOptimisation:
                     return pyo.Constraint.Skip
             except:
                 return pyo.Constraint.Skip
-        self.m.constr_manualPlanning = pyo.Constraint(self.m.set_order_suborder, self.m.set_time, self.m.set_employee_line, rule=rule_manualPlanning)
+        #self.m.constr_manualPlanning = pyo.Constraint(self.m.set_order_suborder, self.m.set_time, self.m.set_employee_line, rule=rule_manualPlanning)
 
+        def rule_planning(m, i, j, k):
+            try:
+                print(combined_planning_df.loc[i, j, k]==1)
+                if combined_planning_df.loc[i, j, k] == 1:
+                    return m.var_alloc[(i, j, k)] == combined_planning_df.loc[i, j, k]
+                else:
+                    return pyo.Constraint.Skip
+            except:
+                return pyo.Constraint.Skip
+        self.m.constr_planning = pyo.Constraint(self.m.set_order_suborder, self.m.set_time, self.m.set_employee_line, rule=rule_planning)
+
+        
     def solve(self, solver_options=None): #FIXME: Problem is with multiple constraints for the same index combination in manual and old planning => contraciting values. Because only executing one or the other does work. Possibly make it the same as the checkers of planning data from excel, that is, 
         #loop through the indexes of the df's and only execute if present or use one constraint with the concatenated dataframe of the two, this way only one constraint is build for each index. BUT this does give into complications with the restrictionline of old planning, but it is possible to filter filter oldplanning based on that criterea. and then concatenate
         solver = pyo.SolverFactory('cbc')

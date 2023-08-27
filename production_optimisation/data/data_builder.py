@@ -64,25 +64,29 @@ class Data_Builder:
             self.dataframes_class.append_dataframe(new_dataframe)
 
 
-    def build_old_and_manual_planning_df(self): #FIXME: the concatenation does not go right. If fixed do note that the old and manual constraint are still seperate => infeasable solution.
+    def build_old_and_manual_planning_df(self):
         manual_planning_df = self.dataframes_class.get_dataframe_by_name('manual_planning_df').get_pandas_dataframe().copy()
         old_planning_df = self.dataframes_class.get_dataframe_by_name('old_planning_df').get_pandas_dataframe().copy()
 
-        print(manual_planning_df)
-        print(old_planning_df)
+        if not old_planning_df.empty:
 
-        old_index = old_planning_df.index
-        old_planning_df = old_planning_df.reset_index()
+            old_index = old_planning_df.index.names
+            old_planning_df = old_planning_df.reset_index()
 
-        condition_old = old_planning_df['time'] <= pd.to_datetime(old_planning_limit, format='%d-%m-%Y %H:%M:%S')
+            condition_old = old_planning_df['time'] <= pd.to_datetime(old_planning_limit, format='%d-%m-%Y %H:%M:%S')
+            old_planning_df = old_planning_df[condition_old].set_index(old_index)
 
-        old_planning_df = old_planning_df[condition_old]
-        old_planning_df = old_planning_df.set_index(old_index)
+            old_planning_df = old_planning_df['allocation']
 
-        combined_df = pd.concat([old_planning_df, manual_planning_df], join='outer').stack()
-        print(combined_df)
-        combined_series = combined_df['allocation'].stack()
-        print(combined_series)
+        if not manual_planning_df.empty and not old_planning_df.empty:
+            combined_df = pd.concat([old_planning_df, manual_planning_df], join='outer')
+        elif manual_planning_df.empty and not old_planning_df.empty:
+            combined_df = old_planning_df
+        elif not manual_planning_df.empty and old_planning_df.empty:
+            combined_df = manual_planning_df
+        else:
+            combined_df = None
+        
 
         old_and_manual_df = Dataframe(self.excel_file, 'old_and_manual_planning_df', None)
         old_and_manual_df.change_pandas_dataframe(combined_df)

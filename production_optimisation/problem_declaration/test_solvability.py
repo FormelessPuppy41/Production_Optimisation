@@ -49,24 +49,33 @@ class SolvabilityTest:
             self.check_planning_restrictions(planning_df=planning, name_planning=name_planning)
 
         def checkOldJOINEDManualPlanning(self):
-            planning = pd.concat([self.old_planning_df, self.manual_planning_df])
+            if not self.old_planning_df.empty and not self.manual_planning_df.empty:
+                planning = pd.concat([self.old_planning_df, self.manual_planning_df])
+            elif not self.old_planning_df.empty and self.manual_planning_df.empty:
+                planning = self.old_planning_df
+            elif self.old_planning_df.empty and not self.manual_planning_df.empty:
+                planning = self.manual_planning_df
+            else:
+                planning = pd.DataFrame
+            
             name_planning = 'Old AND/OR Manual planning'
 
             self.check_planning_restrictions(planning_df=planning, name_planning=name_planning) 
 
         def check_planning_restrictions(self, planning_df: pd.DataFrame, name_planning: str):
-            self.checkAvailabilityForPlanning(planning_df=planning_df, name_planning=name_planning)
-            self.checkSkillForPlanning(planning_df=planning_df, name_planning=name_planning)
-            self.checkHoursPlannedPerEmpl_linePerTimeForPlanning(planning_df=planning_df, name_planning=name_planning)
-            self.checkRequiredHoursPlannedUpperboundForPlanning(planning_df=planning_df, name_planning=name_planning)
+            if not planning_df.empty:
+                self.checkAvailabilityForPlanning(planning_df=planning_df, name_planning=name_planning)
+                self.checkSkillForPlanning(planning_df=planning_df, name_planning=name_planning)
+                self.checkHoursPlannedPerEmpl_linePerTimeForPlanning(planning_df=planning_df, name_planning=name_planning)
+                self.checkRequiredHoursPlannedUpperboundForPlanning(planning_df=planning_df, name_planning=name_planning)
 
         def checkAvailabilityForPlanning(self, planning_df: pd.DataFrame, name_planning: str):
             empl_lineTime_help = planning_df.copy().reset_index()
             
             group_cols = feasability_dfs.get('empl_line_vs_Time')[1]
             sum_col = feasability_dfs.get('empl_line_vs_Time')[2]
-            empl_lineTime: pd.DataFrame = empl_lineTime_help.groupby(group_cols)[sum_col].sum()
-
+            empl_lineTime: pd.DataFrame = empl_lineTime_help.groupby(group_cols)[sum_col].sum() #FIXME: Possibly do this in the cleaning? except if in other checks the sum is not needed, but the normal version.
+            
             requirement_failed = False
             failed_combinations = []
 
@@ -74,14 +83,15 @@ class SolvabilityTest:
                 empl_line = idx[0]
                 time = idx[1]
                 if (empl_lineTime.loc[empl_line, time] >= 1).any():
-                    if not empl_lineTime.loc[empl_line, time].iloc[0] == self.availability_df.loc[time, empl_line]:
+                    if not empl_lineTime.loc[empl_line, time].iloc[0] >= self.availability_df.loc[time, empl_line]:
                         requirement_failed = True
                         failed_combinations.append([empl_line, time])
             
             if requirement_failed == True:
                 print(f'"Empl_line should be available when planned" restriciton not met in {name_planning}')
                 print(f'The following combinations where the cause of the failed requirements: \n {failed_combinations}')
-                raise ValueError(f'"Empl_line should be available when planned" restriction not met in {name_planning}, the following combinations where the cause: {failed_combinations}')
+                print('This means that for the above combinations, the planned employee or line is not available at the given time.')
+                raise ValueError(f'"Empl_line should be available when planned" restriction not met in {name_planning}, the following combinations where the cause: {failed_combinations}. This means that for the above combinations, the planned employee or line is not available at the given time.')
 
         def checkSkillForPlanning(self, planning_df: pd.DataFrame, name_planning: str):
             order_suborderEmpl_line_help = planning_df.copy().reset_index()
@@ -107,6 +117,7 @@ class SolvabilityTest:
             if requirement_failed == True:
                 print(f'"Empl_line should posses skills for planned suborder" restriciton not met in {name_planning}')
                 print(f'The following combinations where the cause of the failed requirements: \n {failed_combinations}')
+                print('This means that an employee is planned more than ones at a given moment. This could be due to being planned twice, once in manual_planning and once in the old_planning')
                 raise ValueError(f'"Empl_line should posses skills for planned suborder" restriction not met in {name_planning}, the following combinations where the cause: {failed_combinations}')
 
         def checkHoursPlannedPerEmpl_linePerTimeForPlanning(self, planning_df: pd.DataFrame, name_planning: str):
@@ -123,7 +134,7 @@ class SolvabilityTest:
             for idx in empl_lineTime.index:
                 empl_line = idx[0]
                 time = idx[1]
-                if (empl_lineTime.loc[empl_line, time] > 1).any():
+                if (empl_lineTime.loc[empl_line, time] > 1).any(): #FIXME: It is possible to change this, because now if a combination is in both manual and old planning, then the exception is thrown, but this is not neccesarry, it is only neccesaary to change the value to one. instead of the sum of the two plannings.
                     requirement_failed = True
                     failed_combinations.append([empl_line, time])
             
@@ -157,6 +168,6 @@ class SolvabilityTest:
                 print(f'"Hours planned for order_suborder less than or equal to upperbound" restriciton is not met in {name_planning}')
                 print(f'The following combinations where the cause of the failed requirements: \n {failed_combinations}')
                 raise ValueError(f'"Hours planned for order_suborder less than or equal to upperbound" restriction is not met in {name_planning}, the following combinations where the cause: {failed_combinations}')
-
+        #FIXME: Add a checker for specifics from the orders_df, such as specific line etc. 
 
                 

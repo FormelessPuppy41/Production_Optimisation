@@ -26,6 +26,7 @@ excel_file = pd.ExcelFile(path_to_excel, engine='openpyxl')
 process = Data_process(excel_file)
 process.process_helper_read_sheets('helper_read_sheets')
 process.process_read_dataframes()
+print('wauwawers') # FIXME remove the true copies 
 process.process_build_dataframes()
 
 excel_file.close()
