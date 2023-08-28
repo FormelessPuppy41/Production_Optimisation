@@ -29,6 +29,7 @@ class SolvabilityTest:
             self.specific_order_suborder_df = self.dataframes_class.get_dataframe_by_name('order_specific_df').get_pandas_dataframe().copy()
             self.skills_df = self.dataframes_class.get_dataframe_by_name('skills_df').get_pandas_dataframe().copy()
             self.required_hours_df = self.dataframes_class.get_dataframe_by_name('time_req_df').get_pandas_dataframe().copy()
+            self.specific_production_line = self.dataframes_class.get_dataframe_by_name('specific_line_df').get_pandas_dataframe().copy()
 
         
         def checkAll(self): #TODO: it is possible to combine all errors into one big message, this way users see all possible errors at the same time.
@@ -68,6 +69,7 @@ class SolvabilityTest:
                 self.checkSkillForPlanning(planning_df=planning_df, name_planning=name_planning)
                 self.checkHoursPlannedPerEmpl_linePerTimeForPlanning(planning_df=planning_df, name_planning=name_planning)
                 self.checkRequiredHoursPlannedUpperboundForPlanning(planning_df=planning_df, name_planning=name_planning)
+                self.checkSpecificLinesForPlanning(planning_df=planning_df, name_planning=name_planning)
 
         def checkAvailabilityForPlanning(self, planning_df: pd.DataFrame, name_planning: str):
             empl_lineTime_help = planning_df.copy().reset_index()
@@ -169,5 +171,50 @@ class SolvabilityTest:
                 print(f'The following combinations where the cause of the failed requirements: \n {failed_combinations}')
                 raise ValueError(f'"Hours planned for order_suborder less than or equal to upperbound" restriction is not met in {name_planning}, the following combinations where the cause: {failed_combinations}')
         #FIXME: Add a checker for specifics from the orders_df, such as specific line etc. 
+
+        def checkSpecificLinesForPlanning(self, planning_df: pd.DataFrame, name_planning: str):
+            specificLinePlanned_help = planning_df.copy().reset_index()
+            
+            group_cols = feasability_dfs.get('order_suborder_vs_empl_line')[1]
+            sum_col = feasability_dfs.get('order_suborder_vs_empl_line')[2]
+            specificLinePlanned: pd.DataFrame = specificLinePlanned_help.groupby(group_cols)[sum_col].sum()
+
+            specific_line_df = self.specific_production_line
+
+            specific_line_df = specific_line_df[specific_line_df != '']
+            
+            requirement_failed = False
+            failed_combinations = []
+            print(specific_line_df)
+
+            for idx in specificLinePlanned.index:
+                order_suborder = idx[0]
+                empl_line = idx[1]
+
+                if order_suborder in specific_line_df.index:
+                    specific_line = specific_line_df.loc[order_suborder]#.iloc[1]
+
+                    if (specific_line != None).any() or (specific_line != '').any():
+                        print('waw')
+                        print(specific_line.iloc[0])
+                        print('waw')
+                        print(specificLinePlanned.loc[order_suborder, empl_line].iloc[0])
+                        if specificLinePlanned.loc[order_suborder, empl_line].iloc[0] ==1:
+                            if empl_line != specific_line.iloc[0]:
+                                requirement_failed = True
+
+                                failed_combinations.append([order_suborder, empl_line])
+            
+            if requirement_failed == True:
+                print(f'"Specific line restriction" was not met in {name_planning}')
+                print(f'The following combinations where the cause of the failed requirements: \n {failed_combinations}')
+                raise ValueError(f'"Specific line restriction" was not met in {name_planning}, The following combinations where the cause of the failed requirements: \n {failed_combinations}' )
+
+
+
+
+
+
+
 
                 

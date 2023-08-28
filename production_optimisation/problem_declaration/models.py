@@ -282,7 +282,6 @@ class EWOptimisation:
 
         def rule_planning(m, i, j, k):
             try:
-                print(combined_planning_df.loc[i, j, k]==1)
                 if combined_planning_df.loc[i, j, k] == 1:
                     return m.var_alloc[(i, j, k)] == combined_planning_df.loc[i, j, k]
                 else:
