@@ -33,8 +33,8 @@ class Data_Cleaner:
             if sheet_type == sheet_types.get('index_in_col_A'):
                 self.change_df_index_to_one()
             elif sheet_type == sheet_types.get('orders'):
-                self.clean_order_df()
                 self.change_df_index_to_one()
+                self.clean_order_df()
             elif sheet_type == sheet_types.get('index_sets'):
                 self.clean_index_sets_df()
             elif sheet_type == sheet_types.get('planning'):
@@ -72,6 +72,8 @@ class Data_Cleaner:
 
             for col in self.pandas_df.columns:
                 self.pandas_df[col] = self.pandas_df[col].apply(lambda x: self.clean_orders_elements(x, col))
+            
+            self.pandas_df = self.pandas_df[self.pandas_df.index != '']
             
             self.dataframe.change_pandas_dataframe(self.pandas_df)
             self.dataframe.change_status_to_cleaned()

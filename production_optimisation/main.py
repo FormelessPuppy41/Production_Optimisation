@@ -26,7 +26,6 @@ excel_file = pd.ExcelFile(path_to_excel, engine='openpyxl')
 process = Data_process(excel_file)
 process.process_helper_read_sheets('helper_read_sheets')
 process.process_read_dataframes()
-print('wauwawers') # FIXME remove the true copies 
 process.process_build_dataframes()
 
 excel_file.close()
@@ -63,6 +62,7 @@ ewOpt.solve(solver_options={'timelimit': time_limit})
 # Check whether there is enough timespan to plan all orders. That is per suborder, because if only lines work, then only lines suborders can be scheduled.
 # Check that the inputted indexes are of the correct format, and give a message if they are not. 
 # Check: Lb and ub must be whole multliple of timespan of timeintervals.
+# Check whether the order df is complete, that is the important columns are filled if not then 
 
 
 # ADD: manual urgency in penalty. and minimize gaps, also minimize gaps between prev/next suborders. 

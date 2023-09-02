@@ -180,27 +180,19 @@ class SolvabilityTest:
             specificLinePlanned: pd.DataFrame = specificLinePlanned_help.groupby(group_cols)[sum_col].sum()
 
             specific_line_df = self.specific_production_line
-
-            specific_line_df = specific_line_df[specific_line_df != '']
             
             requirement_failed = False
             failed_combinations = []
-            print(specific_line_df)
 
             for idx in specificLinePlanned.index:
                 order_suborder = idx[0]
                 empl_line = idx[1]
 
                 if order_suborder in specific_line_df.index:
-                    specific_line = specific_line_df.loc[order_suborder]#.iloc[1]
-
-                    if (specific_line != None).any() or (specific_line != '').any():
-                        print('waw')
-                        print(specific_line.iloc[0])
-                        print('waw')
-                        print(specificLinePlanned.loc[order_suborder, empl_line].iloc[0])
+                    specific_line = specific_line_df.loc[order_suborder].iloc[0]
+                    if specific_line != '':
                         if specificLinePlanned.loc[order_suborder, empl_line].iloc[0] ==1:
-                            if empl_line != specific_line.iloc[0]:
+                            if empl_line != specific_line:
                                 requirement_failed = True
 
                                 failed_combinations.append([order_suborder, empl_line])
