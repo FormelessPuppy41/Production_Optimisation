@@ -46,6 +46,7 @@ class EWOptimisation:
         skills_df = self.dataframes_class.get_dataframe_by_name('skills_df').get_pandas_dataframe()
         availability_df = self.dataframes_class.get_dataframe_by_name('availability_df').get_pandas_dataframe()
         specific_order_suborder = self.dataframes_class.get_dataframe_by_name('order_specific_df').get_pandas_dataframe()
+        specific_line_df = self.dataframes_class.get_dataframe_by_name('specific_line_df').get_pandas_dataframe()
         exec_on_line_df = self.dataframes_class.get_dataframe_by_name('line_indicator_df').get_pandas_dataframe()
         penalty_df = self.dataframes_class.get_dataframe_by_name('penalty_df').get_pandas_dataframe()
         suborders_df = self.dataframes_class.get_dataframe_by_name('next_prev_suborder_df').get_pandas_dataframe()
@@ -232,6 +233,16 @@ class EWOptimisation:
             else:
                 return pyo.Constraint.Skip
         self.m.constr_lineOrdersOnLine = pyo.Constraint(self.m.set_order_suborder, self.m.set_time, self.m.set_employee, rule=rule_lineOrdersOnLine)
+
+
+        def rule_orderOnSpecificLine(m, i, j, k):
+            specific_line = specific_line_df.loc[i].iloc[0]
+            
+            if specific_line != '':
+                if specific_line != k:
+                    return (0, m.var_alloc[(i, j, k)], 0)
+            return pyo.Constraint.Skip
+        self.m.constr_ordersOnSpecificLine = pyo.Constraint(self.m.set_order_suborder, self.m.set_time, self.m.set_employee_line, rule=rule_orderOnSpecificLine)
 
 
         def rule_manualOrdersForEmployee(m, i, j, k):
