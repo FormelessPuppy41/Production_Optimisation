@@ -46,6 +46,8 @@ gantt_chart.convert_dataframe()
 gantt_chart.create_ganttchart()
 #gantt_chart.show_plt()
 
+#FIXME: ADD THE CORRECT OBJECTIVE FUNCTION: MINIMIZE GAPS ETC. FIXME
+
 
 
 
