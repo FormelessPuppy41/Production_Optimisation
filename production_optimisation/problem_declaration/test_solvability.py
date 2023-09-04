@@ -70,6 +70,7 @@ class SolvabilityTest:
                 self.checkHoursPlannedPerEmpl_linePerTimeForPlanning(planning_df=planning_df, name_planning=name_planning)
                 self.checkRequiredHoursPlannedUpperboundForPlanning(planning_df=planning_df, name_planning=name_planning)
                 self.checkSpecificLinesForPlanning(planning_df=planning_df, name_planning=name_planning)
+                self.checkAvailabilityOfNumberOfHoursNeeded(planning_df=planning_df, name_planning=name_planning)
 
         def checkAvailabilityForPlanning(self, planning_df: pd.DataFrame, name_planning: str):
             empl_lineTime_help = planning_df.copy().reset_index()
@@ -91,9 +92,9 @@ class SolvabilityTest:
             
             if requirement_failed == True:
                 print(f'"Empl_line should be available when planned" restriciton not met in {name_planning}')
-                print(f'The following combinations where the cause of the failed requirements: \n {failed_combinations}')
+                print(f'The following combinations were the cause of the failed requirements: \n {failed_combinations}')
                 print('This means that for the above combinations, the planned employee or line is not available at the given time.')
-                raise ValueError(f'"Empl_line should be available when planned" restriction not met in {name_planning}, the following combinations where the cause: {failed_combinations}. This means that for the above combinations, the planned employee or line is not available at the given time.')
+                raise ValueError(f'"Empl_line should be available when planned" restriction not met in {name_planning}, the following combinations were the cause: {failed_combinations}. This means that for the above combinations, the planned employee or line is not available at the given time.')
 
         def checkSkillForPlanning(self, planning_df: pd.DataFrame, name_planning: str):
             order_suborderEmpl_line_help = planning_df.copy().reset_index()
@@ -118,9 +119,9 @@ class SolvabilityTest:
             
             if requirement_failed == True:
                 print(f'"Empl_line should posses skills for planned suborder" restriciton not met in {name_planning}')
-                print(f'The following combinations where the cause of the failed requirements: \n {failed_combinations}')
+                print(f'The following combinations were the cause of the failed requirements: \n {failed_combinations}')
                 print('This means that an employee is planned more than ones at a given moment. This could be due to being planned twice, once in manual_planning and once in the old_planning')
-                raise ValueError(f'"Empl_line should posses skills for planned suborder" restriction not met in {name_planning}, the following combinations where the cause: {failed_combinations}')
+                raise ValueError(f'"Empl_line should posses skills for planned suborder" restriction not met in {name_planning}, the following combinations were the cause: {failed_combinations}')
 
         def checkHoursPlannedPerEmpl_linePerTimeForPlanning(self, planning_df: pd.DataFrame, name_planning: str):
             #FIXME: Double check also the first checker, there it is also used, perhaps there is an easy way to make this accessable in all checks. 
@@ -142,8 +143,8 @@ class SolvabilityTest:
             
             if requirement_failed == True:
                 print(f'"Hours planned per empl_line at given moment" restriciton is not met in {name_planning}')
-                print(f'The following combinations where the cause of the failed requirements: \n {failed_combinations}')
-                raise ValueError(f'"Hours planned per empl_line at given moment" restriction is not met in {name_planning}, the following combinations where the cause: {failed_combinations}')
+                print(f'The following combinations were the cause of the failed requirements: \n {failed_combinations}')
+                raise ValueError(f'"Hours planned per empl_line at given moment" restriction is not met in {name_planning}, the following combinations were the cause: {failed_combinations}')
 
         def checkRequiredHoursPlannedUpperboundForPlanning(self, planning_df: pd.DataFrame, name_planning: str):
             # Possibly also add the old planning? because that is taken as an absolute aswell. 
@@ -168,8 +169,8 @@ class SolvabilityTest:
             
             if requirement_failed == True:
                 print(f'"Hours planned for order_suborder less than or equal to upperbound" restriciton is not met in {name_planning}')
-                print(f'The following combinations where the cause of the failed requirements: \n {failed_combinations}')
-                raise ValueError(f'"Hours planned for order_suborder less than or equal to upperbound" restriction is not met in {name_planning}, the following combinations where the cause: {failed_combinations}')
+                print(f'The following combinations were the cause of the failed requirements: \n {failed_combinations}')
+                raise ValueError(f'"Hours planned for order_suborder less than or equal to upperbound" restriction is not met in {name_planning}, the following combinations were the cause: {failed_combinations}')
         #FIXME: Add a checker for specifics from the orders_df, such as specific line etc. 
 
         def checkSpecificLinesForPlanning(self, planning_df: pd.DataFrame, name_planning: str):
@@ -199,8 +200,61 @@ class SolvabilityTest:
             
             if requirement_failed == True:
                 print(f'"Specific line restriction" was not met in {name_planning}')
-                print(f'The following combinations where the cause of the failed requirements: \n {failed_combinations}')
-                raise ValueError(f'"Specific line restriction" was not met in {name_planning}, The following combinations where the cause of the failed requirements: \n {failed_combinations}' )
+                print(f'The following combinations were the cause of the failed requirements: \n {failed_combinations}')
+                raise ValueError(f'"Specific line restriction" was not met in {name_planning}, The following combinations were the cause of the failed requirements: \n {failed_combinations}' )
+        
+
+        # Testing restrictions for the model, which are not about the planning.
+        def checkAvailabilityOfNumberOfHoursNeeded(self, planning_df: pd.DataFrame, name_planning: str): #FIXME: Add a way to get all the combinations that are possible, without 'counting' certain points double. That is, if someone does MAG, they cannot also preform SMD at that same moment => lower maximum per suborder. 
+
+            # create a df that gets the maximum amount of allocations per suborder
+            max_numberOfAllocationsPerSuborder_df = self.availability_df.dot(self.skills_df).sum(axis=0)
+
+            # the maximum of total allocations is:
+            max_numberOfAllocations = self.availability_df.sum(axis=0).sum(axis=0)
+
+            # find a way to make a list of not just the max per suborder, but for all possible combinations where employees are allocated once per time interval 
+            allowedCombinationsList = []
+
+            # Needed number of allocations per suborder
+            group_cols = feasability_dfs.get('specific_order_req_time_df')[1]
+            sum_col = feasability_dfs.get('specific_order_req_time_df')[2]
+            reqTimePerSuborder = self.orders_df.reset_index().groupby(group_cols)[sum_col].sum()
+
+            # how to cleaverly check whether a combination is possible, add one to each suborder each time or? is there a way to use like ai. 
+
+            
+            # checks whether there is asked to schedule more than is even possible in the given time ranges.
+            print(reqTimePerSuborder)
+            if reqTimePerSuborder.sum(axis=0).iloc[0] > max_numberOfAllocations:
+                print(f'"Hour availability in Planning" was not met in {name_planning}')
+                print(f'The total sum of all required time intervals were the cause of the failed requirements')
+                raise ValueError(f'"Hour availability in Planning" was not met in {name_planning}, The total sum of all required time intervals were the cause of the failed requirements')
+
+            allowed = True
+            #for combination in allowedCombinationsList:
+            for suborder in max_numberOfAllocationsPerSuborder_df.index:
+                if suborder != 'NONE':
+                    # checks whether more time is required for a suborder than is possible in the given time ranges
+                    if max_numberOfAllocationsPerSuborder_df.loc[suborder] < reqTimePerSuborder.loc[suborder].iloc[0]:
+                        allowed = False
+                        print(f'"Hour availability in Planning" was not met in {name_planning}')
+                        print(f'The sum of all required time intervals were the cause of the failed requirements in the following suborder: {suborder}')
+                        raise ValueError(f'"Hour availability in Planning" was not met in {name_planning}, The sum of all required time intervals were the cause of the failed requirements in the following suborder: {suborder}')
+
+            """for suborder in max_numberOfAllocationsPerSuborder_df.index:
+                # checks whether more time is required than there is in the current combination.
+                if combination.loc[suborder] < reqTimePerSuborder.loc[suborder]:
+                    allowed = False
+                    break # Break or Raise? same as above"""
+            
+            # checks whether the current combination completed all tests, if so the program can be stopped because there should not be any problems with the hours needed for the planning, as there is at least one 'solution' for the allocation of time over suborders.
+            if allowed == True:
+                pass # a possible solution format has been found, so no need to search further. 
+                    
+            # is there a way to make a list of all possible combinations, that are valid. That is a a person can only be allocated once every time interval. 
+
+        #Also add the check above, but then for people, such that needed planned hours per persion(that is specific_line) is enough. 
 
 
 

@@ -23,7 +23,7 @@ else:
 
 excel_file = pd.ExcelFile(path_to_excel, engine='openpyxl')
 
-process = Data_process(excel_file)
+process = Data_process(excel_file) # add a way to check whether the data has changed in excel => store the data in database => no need to reread every time.
 process.process_helper_read_sheets('helper_read_sheets')
 process.process_read_dataframes()
 process.process_build_dataframes()
@@ -41,9 +41,9 @@ ewOpt.solve(solver_options={'timelimit': time_limit})
 #ewOpt.export() 
 
 
-#gantt_chart = GanttChart(ewOpt.short_solution)
-#gantt_chart.convert_dataframe()
-#gantt_chart.create_ganttchart()
+gantt_chart = GanttChart(ewOpt.short_solution)
+gantt_chart.convert_dataframe()
+gantt_chart.create_ganttchart()
 #gantt_chart.show_plt()
 
 
@@ -80,3 +80,4 @@ ewOpt.solve(solver_options={'timelimit': time_limit})
 # Aslo add a vba function that filters the manual input such that the orders are clustered, this way there is a better overview of all the manual inputs for orders. 
 
 # Add a backreading of new start and end dates for the orders.
+# ADD conditional formatting and search box for easily finding the different orders in a large list, look at stored vids on insta.

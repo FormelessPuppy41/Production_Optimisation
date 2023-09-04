@@ -31,6 +31,7 @@ dfs = { # Standard name: [ Name of excelsheet / dataframe, [ columns in (orders)
     'time_req_df': ['Time_required_per_order', ['Time_hours_lowerbound', 'Time_hours_upperbound'], None],
     'specific_line_df': ['Production_specific_line', ['Production_line_specific_line'], None],
     'dates_df': ['dates_start_deadline', ['Date_start', 'Date_deadline'], None],
+    'specific_order_req_time_df':['specific_order_req_time_df', ['Sub_order', 'Time_hours_upperbound'], None],
     'next_prev_suborder_df': ['Next_prev_suborder', ['Previous_sub_order', 'Next_sub_order'], None],
     'revenue_df': ['Revenue', ['Revenue'], None],
     'order_specific_df': ['Order_specific', ['Order_number', 'Sub_order'], None],
@@ -46,7 +47,8 @@ feasability_dfs = {
     'EXAMPLE': ['EXAMPLEN_NAME', ['COLUMNS_THAT_BUILDS_DF'], ['SUM_LEAVE_COLUMNS/SUM_OVER_ALL_COLS_EXCEPT..']],
     'empl_line_vs_Time': ['empl_line_vs_Time', ['empl_line', 'time'], ['allocation']],
     'order_suborder_vs_empl_line': ['order_suborder_vs_empl_line', ['order_suborder', 'empl_line'], ['allocation']], 
-    'order_suborder_vs_allocation': ['order_suborder_vs_allocation', ['order_suborder'], ['allocation']]
+    'order_suborder_vs_allocation': ['order_suborder_vs_allocation', ['order_suborder'], ['allocation']],
+    'specific_order_req_time_df':['specific_order_req_time_df', ['Sub_order'], ['Time_hours_upperbound']]
 }
 
 dfs_to_build_columnBased = ['time_req_df', 'specific_line_df', 'dates_df', 'next_prev_suborder_df', 'revenue_df', 'order_specific_df', 'percentage_df'] # From orders_df. Strings should be from 'dfs'.
