@@ -324,6 +324,7 @@ class EWOptimisation:
         #optimal_df = optimal_df.groupby(['time', 'order_suborder', 'empl_line'])
         self.solution = optimal_df
         self.short_solution = self.solution.copy()[(self.solution!=0)]#.any(axis=1)]
+        self.short_solution.name = 'allocation'
 
         self.shortSolution = Dataframe(pandas_excel_file=self.excel_file, dataframe_name='solution_df', excel_sheet_name=dfs.get('solution_df')[0])
         self.shortSolution.change_pandas_dataframe(self.short_solution)

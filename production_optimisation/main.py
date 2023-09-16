@@ -42,9 +42,9 @@ ewOpt.solve(solver_options={'timelimit': time_limit})
 
 
 gantt_chart = GanttChart(ewOpt.short_solution)
-gantt_chart.convert_dataframe()
+gantt_chart.convert_dataframe(process.dataframes.get_dataframe_by_name('order_specific_df').get_pandas_dataframe())
 gantt_chart.create_ganttchart()
-#gantt_chart.show_plt()
+gantt_chart.show_plt()
 
 #FIXME: ADD THE CORRECT OBJECTIVE FUNCTION: MINIMIZE GAPS ETC. FIXME
 
