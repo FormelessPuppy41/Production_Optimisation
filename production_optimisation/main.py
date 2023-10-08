@@ -50,7 +50,7 @@ gantt_chart.show_plt()
 
 
 
-
+#TODO: From the erp system there is a solution for the planning, this can be used as a 'starting point' for solving. 
 
 
 
