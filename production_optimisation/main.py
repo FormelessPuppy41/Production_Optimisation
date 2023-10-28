@@ -47,7 +47,7 @@ gantt_chart.create_ganttchart()
 gantt_chart.show_plt()
 
 #FIXME: ADD THE CORRECT OBJECTIVE FUNCTION: MINIMIZE GAPS ETC. FIXME
-
+#FIXME: How to add dynamic programming. First solve the schedule, then the allocation of people? max schedule per hour is max free people per hours (dynamicly calculated)
 
 
 #TODO: From the erp system there is a solution for the planning, this can be used as a 'starting point' for solving. 
