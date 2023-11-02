@@ -8,6 +8,12 @@ import pandas as pd
 # https://stackoverflow.com/questions/63793981/formatting-multilevel-axes-labels-with-plotly
 # Multi category on y axis python graph. 
 
+#https://www.youtube.com/watch?v=BWbPgVmh-bk
+#!!!!!!!
+#https://www.datacamp.com/tutorial/how-to-make-gantt-chart-in-python-matplotlib
+#!!!!!!!
+#https://towardsdatascience.com/gantt-charts-with-pythons-matplotlib-395b7af72d72
+
 class GanttChart:
     def __init__(self, dataframe: pd.DataFrame):
         self.df = dataframe
