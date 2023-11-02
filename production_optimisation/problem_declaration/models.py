@@ -72,8 +72,9 @@ class EWOptimisation:
         self.m.set_gaps_index = pyo.Set(initialize=self.m.set_order_suborder * self.m.set_time)
 
         # Upperbounds
-        self.upperbound = len(self.m.set_order_suborder)*len(self.m.set_time)*len(self.m.set_employee_line)
-        self.upperbound_gaps = len(self.m.set_order_suborder)*len(self.m.set_time)
+        self.upperbound = len(self.m.set_order_suborder) * len(self.m.set_time) * len(self.m.set_employee_line)
+        self.m.upperbound_of_employee = len(self.m.set_employee_line)
+        self.m.upperbound_of_employees_and_time = len(self.m.set_employee_line) * len(self.m.set_time)
     
         # Create variables
         self.m.var_alloc = pyo.Var(self.m.set_alloc_index, domain=pyo.Binary)
@@ -82,6 +83,7 @@ class EWOptimisation:
         self.m.var_before = pyo.Var(self.m.set_gaps_index, domain=pyo.Binary)
         self.m.var_after = pyo.Var(self.m.set_gaps_index, domain=pyo.Binary)
         self.m.var_during = pyo.Var(self.m.set_gaps_index, domain=pyo.Binary)
+        self.m.var_gaps = pyo.Var(self.m.set_gaps_index, domain=pyo.Binary)
 
         
         # Create objective
@@ -314,17 +316,17 @@ class EWOptimisation:
                 return pyo.Constraint.Skip
         self.m.constr_planning = pyo.Constraint(self.m.set_order_suborder, self.m.set_time, self.m.set_employee_line, rule=rule_planning)
 
-        # Identifying gaps in the planning. 
+        # Identifying gaps in the planning. Difference between before and after is in the second summations, that is t <=/>= j. 
         def rule_gaps_before1(m, i, j):
             try:
                 return 2 * sum(
-                    sum(
-                        m.var_alloc[(i, t, k)] 
-                        for k in m.set_employee_line
-                        ) 
-                    for t in m.set_time 
-                    if t <= j
-                    ) - 1 <= m.upperbound_gaps * m.var_before[(i, j)]
+                                sum(
+                                    m.var_alloc[(i, t, k)] 
+                                    for k in m.set_employee_line
+                                    ) 
+                                for t in m.set_time 
+                                if t <= j
+                    ) - 1 <= m.upperbound_of_employees_and_time * m.var_before[(i, j)]
             except:
                 return pyo.Constraint.Skip
         self.m.gaps_before1 = pyo.Constraint(self.m.set_order_suborder, self.m.set_time, rule=rule_gaps_before1)
@@ -332,71 +334,81 @@ class EWOptimisation:
         def rule_gaps_before2(m, i, j):
             try:
                 return m.var_before[(i, j)] <= sum(
-                    sum(m.var_alloc[(i, t, k)] 
-                        for k in m.set_employee_line
-                        ) 
-                    for t in m.set_time 
-                    if t <= j
-                    )
+                                                sum(m.var_alloc[(i, t, k)] 
+                                                    for k in m.set_employee_line
+                                                    ) 
+                                                for t in m.set_time 
+                                                if t <= j
+                                                )
             except:
                 return pyo.Constraint.Skip
         self.m.gaps_before2 = pyo.Constraint(self.m.set_order_suborder, self.m.set_time, rule=rule_gaps_before2)
 
-        def rule_gaps_after1(m, i, j):
+        def rule_gaps_after1(m, i, j): #FIXME: Makes the model infeasable. 
             try:
                 return 2 * sum(
-                    sum(
-                        m.var_alloc[(i, t, k)] 
-                        for k in m.set_employee_line
-                        ) 
-                    for t in m.set_time 
-                    if t >= j
-                    ) - 1 <= m.upperbound_gaps * m.var_before[(i, j)]
+                                sum(
+                                    m.var_alloc[(i, t, k)] 
+                                    for k in m.set_employee_line
+                                    ) 
+                                for t in m.set_time 
+                                if t >= j
+                    ) - 1 <= m.upperbound_of_employees_and_time * m.var_after[(i, j)]
             except:
                 return pyo.Constraint.Skip
         self.m.gaps_after1 = pyo.Constraint(self.m.set_order_suborder, self.m.set_time, rule=rule_gaps_after1)
 
         def rule_gaps_after2(m, i, j):
             try:
-                return m.var_before[(i, j)] <= sum(
-                    sum(m.var_alloc[(i, t, k)] 
-                        for k in m.set_employee_line
-                        ) 
-                    for t in m.set_time 
-                    if t >= j
-                    )
+                return m.var_after[(i, j)] <= sum(
+                                                sum(m.var_alloc[(i, t, k)] 
+                                                    for k in m.set_employee_line
+                                                    ) 
+                                                for t in m.set_time 
+                                                if t >= j
+                                                )
             except:
                 return pyo.Constraint.Skip
         self.m.gaps_after2 = pyo.Constraint(self.m.set_order_suborder, self.m.set_time, rule=rule_gaps_after2)
 
+        # During indicates all the TI between and including the start and end TI of an order. 
         def rule_gaps_during1(m, i, j):
             try:
                 return m.var_during[(i, j)] <= m.var_before[(i, j)]
             except:
                 return pyo.Constraint.Skip
-        self.m.gaps_during1 = pyo.Constraint(self.m.set_order_subord, self.m.set_time, rule=rule_gaps_during1)
+        self.m.gaps_during1 = pyo.Constraint(self.m.set_order_suborder, self.m.set_time, rule=rule_gaps_during1)
 
         def rule_gaps_during2(m, i, j):
             try:
                 return m.var_during[(i, j)] <= m.var_after[(i, j)]
             except:
                 return pyo.Constraint.Skip
-        self.m.gaps_during2 = pyo.Constraint(self.m.set_order_subord, self.m.set_time, rule=rule_gaps_during2)
+        self.m.gaps_during2 = pyo.Constraint(self.m.set_order_suborder, self.m.set_time, rule=rule_gaps_during2)
 
         def rule_gaps_during3(m, i, j):
             try:
                 return m.var_during[(i, j)] >= m.var_before[(i, j)] + m.var_after[(i, j)] - 1
             except:
                 return pyo.Constraint.Skip
-        self.m.gaps_during3 = pyo.Constraint(self.m.set_order_subord, self.m.set_time, rule=rule_gaps_during3)
+        self.m.gaps_during3 = pyo.Constraint(self.m.set_order_suborder, self.m.set_time, rule=rule_gaps_during3)
 
+        # Gaps is a variable that shows on which TI's the order is not being executed, while it being past the begin TI and before the End TI. 
         def rule_gaps_gaps1(m, i, j):
             try:
-                return m.var_gaps[(i, j)] == m.var_during[(i, j)] - m.var_alloc[(i, k, j)]
-                #FIXME: var_alloc is per time frame. create a variable with constraints that make a sum_alloc that indicates when an order is busy for all employees. 
+                return m.var_during[(i, j)] - sum(m.var_alloc[(i, k, j)] for k in m.set_employee_line) <= m.upperbound_of_employee * m.var_gaps[(i, j)]
             except:
                 return pyo.Constraint.Skip
+        self.m.gaps_gaps1 = pyo.Constraint(self.m.set_order_suborder, self.m.set_time, rule=rule_gaps_gaps1)
+            
+        def rule_gaps_gaps2(m, i, j):
+            try:
+                return m.var_during[(i, j)] - sum(m.var_alloc[(i, k, j)] for k in m.set_employee_line) >= 1 - m.upperbound_of_employee * (1 - m.var_gaps[(i, j)])
+            except:
+                return pyo.Constraint.Skip
+        self.m.gaps_gaps2 = pyo.Constraint(self.m.set_order_suborder, self.m.set_time, rule=rule_gaps_gaps2)
         
+
     def solve(self, solver_options=None): #FIXME: Problem is with multiple constraints for the same index combination in manual and old planning => contraciting values. Because only executing one or the other does work. Possibly make it the same as the checkers of planning data from excel, that is, 
         #loop through the indexes of the df's and only execute if present or use one constraint with the concatenated dataframe of the two, this way only one constraint is build for each index. BUT this does give into complications with the restrictionline of old planning, but it is possible to filter filter oldplanning based on that criterea. and then concatenate
         solver = pyo.SolverFactory('cbc')
@@ -425,6 +437,16 @@ class EWOptimisation:
         self.shortSolution.change_pandas_dataframe(self.short_solution)
 
         print(self.short_solution)
+
+        gap_values = {(i, j): self.m.var_during[(i, j)].value for (i, j) in self.m.set_gaps_index}
+        index_values = [idx for idx in self.m.set_gaps_index]
+
+        gaps_df = pd.Series(gap_values.values(), index=pd.MultiIndex.from_tuples(index_values, names=['order_suborder', 'time']))
+        gaps_df = gaps_df[(gaps_df!=0)]
+        gaps_df.name = 'gaps'
+        print(gaps_df)
+
+
         return results
     
     def export(self):

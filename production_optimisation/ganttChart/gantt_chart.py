@@ -4,6 +4,10 @@ import plotly.express as px
 import pandas as pd
 
 
+# https://github.com/apexcharts/apexcharts.js/issues/705
+# https://stackoverflow.com/questions/63793981/formatting-multilevel-axes-labels-with-plotly
+# Multi category on y axis python graph. 
+
 class GanttChart:
     def __init__(self, dataframe: pd.DataFrame):
         self.df = dataframe
