@@ -10,6 +10,15 @@ from data.data_index import Data_Index
 
 from general_configuration import dfs, old_planning_limit
 
+""" 
+Aks in ChatGPT:
+how to keep your complicated pyomo project organised, that is if i use variables and sets then i define them as: self.m.var/set because of this i cannot autocomplete or get recommendations for arguments inside the var/set. If i work in a large project this results in difficulties keeping track of the correct indexes and var/set names. How can i overcome this difficulty?
+
+What if we make it a shortest path problem. minimizing the maximum length of each order with a non specified starting point.
+That is you apply the A* algorithm to the optimisation. with length of the needed time to complete. https://www.youtube.com/watch?v=A60q6dcoCjw
+This way you first minimize the actual schedule before assigning the specific jobs to people. It still remains to find a way to have correct lengths for the jobs without being able to differentiate a hour having one worker or multiple work on the project and thus reducing the length. 
+"""
+
 class EWOptimisation:
     """This class implements the optimisation problem for EW.
     """
@@ -372,6 +381,7 @@ class EWOptimisation:
         self.m.gaps_after2 = pyo.Constraint(self.m.set_order_suborder, self.m.set_time, rule=rule_gaps_after2)
 
         # During indicates all the TI between and including the start and end TI of an order. 
+        #FIXME: could it not also happen with: x1i + x2i >= 1 + yi, yi = 1 if x1i=x2i=1 else 0 
         def rule_gaps_during1(m, i, j):
             try:
                 return m.var_during[(i, j)] <= m.var_before[(i, j)]
@@ -438,7 +448,7 @@ class EWOptimisation:
 
         print(self.short_solution)
 
-        gap_values = {(i, j): self.m.var_during[(i, j)].value for (i, j) in self.m.set_gaps_index}
+        gap_values = {(i, j): self.m.var_gaps[(i, j)].value for (i, j) in self.m.set_gaps_index}
         index_values = [idx for idx in self.m.set_gaps_index]
 
         gaps_df = pd.Series(gap_values.values(), index=pd.MultiIndex.from_tuples(index_values, names=['order_suborder', 'time']))
