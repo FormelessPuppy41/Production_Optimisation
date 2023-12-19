@@ -14,6 +14,10 @@ import pandas as pd
 #!!!!!!!
 #https://towardsdatascience.com/gantt-charts-with-pythons-matplotlib-395b7af72d72
 
+#TODO:
+# COULD ALSO ADD A STEAMLIT PAGE, WITH A DATAFRAME LIKE THE ONE FOR RECO. SO, CONDITIONAL FORMATTING ON STARTING AND ENDING DATE. 
+# BUT FIRST MOST IMPORTANT IS A PRODUCT FOR TESTING, LATER THE FANCY STUFF CAN BE ADDED.
+
 class GanttChart:
     def __init__(self, dataframe: pd.DataFrame):
         self.df = dataframe
