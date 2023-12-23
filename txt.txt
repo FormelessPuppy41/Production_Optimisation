@@ -2,3 +2,72 @@ https://jckantor.github.io/ND-Pyomo-Cookbook/notebooks/04.03-Job-Shop-Scheduling
 
 
 
+#TODO's:
+
+    GENERAL:
+
+        Correctly structure the package. 
+            How should you properly structure a package (how to use __init__.py etc.)
+
+
+
+    CURRENT MODEL:
+
+        #TODO: DOCUMENT THE CODE!!
+            Start with adding documentation and removing the resolved fixme/todo's 
+
+        Add a check in 'Data_process' such that if the data has been read and/or cleaned it does not happen again. 
+
+        TODO: Add the correct objective function, that is include minimize gaps, manualurgency etc. 
+
+        #TODO: Feasability check before solving. This way the end user can make changes presolving. 
+            Check combinations of order_suborder on a line: are lines allowed to perform this suborder?
+            Check is there engough timespan: can all orders be allocated within the given timespan? But this must be per suborder, because if only lines work, then only line suborders can be scheduled.
+            Check if inputted indexes are in the correct format, give a message if they are not. (for example int (3) should be string ('3'))
+            Check lb and up of needed_time must be multiple of the timespan of the timeintervals
+            check whether the order_df is complete: are all important column filled?
+
+        Redo the dataclass:
+            Make subclasses for different dataframes, that is order_df gets it's own class within dataframe. This way all unique features, e.g. cleaning or reading rules, can be specified within a subclass. 
+                This leads to many redundant modules, which can be removed as they are no longer needed. 
+
+        Redo the constraints:
+            Make subclass contraints that apply individual constraints, instead of adding them all in one go. (Is this not already the case using certain functions? // make subclasses of combined constraints: subclass constraint.gaps -> all functions that implement the gaps.)
+
+        GanttChart:
+            Line for start and end dates, for each order a colour, and for each suborder a pattern?
+            Make it scrollable and add dropdownlists for specific employees and orders
+            How to filter the orders, because they are not alphabetically, can be done based on starting date. (remove orders that have already been completed.)
+            individual schedules of employees. 
+
+        Write the new start and end dates to the ERP-system.
+
+
+
+    ADVANCED MODEL:
+
+        Add test cases through out the code, to make sure everything performs as it should.
+            Not only for data manipulation but also to test 
+        
+        How can we implement dynamic programming in this model to improve modelling time. 
+            First solve schedule, then allocate people to the schedule? Max schedule per hour is the max free people per hour( dynamically calculated)
+
+            After this is implemented, then:
+                Add constraint that minimizes the amount of workers used. (workers cannot work more than x hours per week), this might go hand in hand with the solving of the subproblem of allocation of the workers, based on a penalty matrix computed using skills and cost per hour
+                Add Skill level of order and employee: some workers are only allowed to perform certain tasks.
+
+        How can we implement senerio modelling
+            Add single orders and resolve: checking for new orders when they could best be scheduled. (lecture slides of AirTransportation pg. 6/7/8/9)
+        
+        ERP:
+            Use the 'solution' from the ERP-system as a 'base case' to reduce solving time?
+
+            Write the new start- and enddates to the ERP-system.
+
+        VBA:
+            Automatically close excelfile and run python script
+            Filter the manual inputted data, such that they are sorted Correctly
+                Should manual written data be 'emptied' after solving?
+            Add conditional formatting and search boxes for finding orders in a large list, (think of the videos on insta with highlighted rows and columns inside a dataframe)
+
+

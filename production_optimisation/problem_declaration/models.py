@@ -98,11 +98,12 @@ class EWOptimisation:
         # Create objective
         def rule_objectiveFunction(m):
             penalty = sum(
-                m.var_alloc[i, j, k] * penalty_df.loc[j, i]
-                for i in m.set_order_suborder
-                for j in m.set_time
-                for k in m.set_employee_line
-                ) + sum(
+                    m.var_alloc[i, j, k] * penalty_df.loc[j, i]
+                    for i in m.set_order_suborder
+                    for j in m.set_time
+                    for k in m.set_employee_line
+                ) + \
+                    sum(
                     m.var_during[(i, j)] * 400 #FIXME: should be m.var_gaps, but first fix the fixme at line 396. 
                     for i in m.set_order_suborder
                     for j in m.set_time
@@ -292,7 +293,6 @@ class EWOptimisation:
             if j <= pd.to_datetime(old_planning_limit, format='%d-%m-%Y %H:%M:%S'):
                 try:
                     if old_planning_df.loc[i, j, k] == 1:
-                        #print(old_planning_df)
                         return m.var_alloc[(i, j, k)] == int(old_planning_df.loc[i, j, k])
                     else:
                         return pyo.Constraint.Skip

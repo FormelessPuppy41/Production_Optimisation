@@ -1,10 +1,10 @@
 # Dependencies: Pandas, Pyomo, xlsxwriter, openpyxl
 
 path_to_excel = '/Users/gebruiker/Documents/GitHub/Production_Optimisation/production_optimisation/EW_Optimisation.xlsm'
-
 #"/Users/gebruiker/Dropbox/Werk/BMQSolutions/0_Production_optimisation/ElectroWatt_Optimisation.xlsx"
+
 time_limit = 60
-old_planning_limit = '21-08-2023 14:00:00' # format is important, see the format in the olplanning constraint.
+old_planning_limit = '21-08-2023 14:00:00' # Until which point should the old planning be used. Also, format is important, see the format in the oldplanning constraint.
 
 df_reader_helper = ['helper_read_sheets'] # Sheet that contains information about all the other sheets. Possible to rename to 'sheet1', that way it is standardized, but also this is standardized as long as you dont change the name. 
 
@@ -53,7 +53,7 @@ feasability_dfs = {
 
 dfs_to_build_columnBased = ['time_req_df', 'specific_line_df', 'dates_df', 'next_prev_suborder_df', 'revenue_df', 'order_specific_df', 'percentage_df'] # From orders_df. Strings should be from 'dfs'.
 dfs_to_build_indicatorBased = ['line_indicator_df'] # Strings should be from 'dfs'. 
-#FIXME: These could be removed if the previous fixme about differen dictionaries for the dfs {} is completed. 
+#FIXME: These could be removed if the previous fixme about different dictionaries for the dfs {} is completed. 
 
 data_indexes_columns = { # Column titles of index_sets.
     'order_suborder': 'Orders_suborders',
