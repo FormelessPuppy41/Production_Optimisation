@@ -87,6 +87,7 @@ class Data_Builder:
         else:
             combined_df = None
         
+        combined_df = combined_df.drop_duplicates(keep='first')
 
         old_and_manual_df = Dataframe(self.excel_file, 'old_and_manual_planning_df', None)
         old_and_manual_df.change_pandas_dataframe(combined_df)

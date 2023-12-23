@@ -138,12 +138,11 @@ class Data_Cleaner:
             index_columns = [idx for idx in columns if columns.index(idx) <= 2]
             self.pandas_df = self.pandas_df.set_index(index_columns)
             self.pandas_df.columns = ['allocation']
-            self.pandas_df = self.pandas_df['allocation'].squeeze()
 
+            #self.pandas_df = self.pandas_df['allocation'].squeeze()
             self.pandas_df = self.pandas_df[self.pandas_df != 0.0]
-        
+            
             self.dataframe.change_pandas_dataframe(self.pandas_df)
-
             self.dataframe.change_status_to_cleaned()
 
     def clean_manual_planning_df(self):

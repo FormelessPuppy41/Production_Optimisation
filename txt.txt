@@ -15,7 +15,10 @@ https://jckantor.github.io/ND-Pyomo-Cookbook/notebooks/04.03-Job-Shop-Scheduling
 
         #TODO: DOCUMENT THE CODE!!
             Start with adding documentation and removing the resolved fixme/todo's 
+            After improving the documentation: make new branch for ganttchart.
 
+        Add logging to the models.py, if the constraints are skipped. 
+        
         Add a check in 'Data_process' such that if the data has been read and/or cleaned it does not happen again. 
 
         TODO: Add the correct objective function, that is include minimize gaps, manualurgency etc. 
@@ -30,6 +33,7 @@ https://jckantor.github.io/ND-Pyomo-Cookbook/notebooks/04.03-Job-Shop-Scheduling
         Redo the dataclass:
             Make subclasses for different dataframes, that is order_df gets it's own class within dataframe. This way all unique features, e.g. cleaning or reading rules, can be specified within a subclass. 
                 This leads to many redundant modules, which can be removed as they are no longer needed. 
+                Also, the export dataframe to excel function in models.py could be removed and made a function of the solution subclass.
 
         Redo the constraints:
             Make subclass contraints that apply individual constraints, instead of adding them all in one go. (Is this not already the case using certain functions? // make subclasses of combined constraints: subclass constraint.gaps -> all functions that implement the gaps.)
@@ -67,7 +71,8 @@ https://jckantor.github.io/ND-Pyomo-Cookbook/notebooks/04.03-Job-Shop-Scheduling
         VBA:
             Automatically close excelfile and run python script
             Filter the manual inputted data, such that they are sorted Correctly
-                Should manual written data be 'emptied' after solving?
+                Should manual written data be 'emptied' after solving? No, because they could be scheduled after the old_planning_limit -> if you run the program again some data is lost. 
+                Could also change the format of manual planning, because now the precise allocation needs to be specified. But often if will only be important that an order is scheduled between two periods, so perhaps add something like that: add indicator for specific/global manual allocation and first split the dataframes into 'manual_planning_df' and 'global_manual_planning', these could then be made with specific constructors for the manualplanning subclass.
             Add conditional formatting and search boxes for finding orders in a large list, (think of the videos on insta with highlighted rows and columns inside a dataframe)
 
 

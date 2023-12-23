@@ -43,8 +43,6 @@ ewOpt.createModel()
 
 # SOLVE THE MODEL
 solv_test = SolvabilityTest().TestPlanningEW(ewOpt) 
-#FIXME:FIXME:FIXME: The problem with the old/manual planning is that they cannot be preformed at the same time. This results in errors. So we have to find a way to sepearte them, such that they only get the allocation needed. 
-#Also what if old and manual planning both have the same values, then the concat would result in a 2.0 value => out of bounds of binairy, so how to fix this. Or is this already checked via the hoursplannedperempllinepermoment requirement for oldjoinedmanual
 
 # CHECK WHETHER THE INPUTTED DATA SATISFY THE CONTRAINTS
 solv_test.checkAll()
@@ -52,7 +50,7 @@ solv_test.checkAll()
 # SOLVE THE ACTUAL MODEL
 ewOpt.solve(solver_options={'timelimit': time_limit})
 # EXPORT THE MODEL TO THE EXCELFILE
-#ewOpt.export() # DO NOT EXPORT BEFORE BACKING UP THE EXCEL FILE
+ewOpt.export() # DO NOT EXPORT BEFORE BACKING UP THE EXCEL FILE
 
 """
 ### OBTAIN A USER INTERFACE FOR END USERS
@@ -67,4 +65,3 @@ gantt_chart.create_ganttchart()
 gantt_chart.show_plt()
 """
 
-#FIXME: ADD THE CORRECT OBJECTIVE FUNCTION: MINIMIZE GAPS ETC. FIXME
