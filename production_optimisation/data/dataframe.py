@@ -179,8 +179,8 @@ class Dataframe:
             print(pd_df)
  
             if isinstance(pd_df, (pd.DataFrame, pd.Series)):
-
-                # path_to_excel
+                #FIXME: Create VBA file that communicates with python to indicate whether a file is opened by the user, then the dataframe will not be written to excel until the file is closed. otherwise there will be alot of corrupt files.
+                #path_to_excel
                 with pd.ExcelWriter(path='/Users/gebruiker/Documents/GitHub/Production_Optimisation/production_optimisation/test.xlsm', engine='openpyxl', mode='a', if_sheet_exists='replace', engine_kwargs={'keep_vba': True}) as writer:
                     # ERROR: In the future it is possible that this results in an error, because of a bug in pandas. SEE comment of 'eldarmammadov commented on Nov 26, 2022': https://github.com/pandas-dev/pandas/issues/44868
                     pd_df.to_excel(excel_writer=writer, sheet_name=self.excel_sheet_name, index=True)

@@ -4,6 +4,7 @@ import pyomo.environ as pyo
 import pandas as pd
 import logging
 from icecream import ic
+import sys
 
 from data.dataframe import Dataframe
 from data.dataframes import Dataframes
@@ -38,9 +39,51 @@ class EWOptimisation:
 
         self.solution = pd.DataFrame
         self.short_solution = pd.DataFrame
+
+        self.initialized_EWOptimisation = True
         
     
     def createModel(self):
+        """Creates the pyomo model that optimizes the production planning for EW.
+
+        THE OBJECTIVE FUNCTION:
+            # MINIMIZE: ALLOCATION * PENALTY + 400 * VAR_GAPS + 400 * VAR_BEFORE 
+            
+            # THAT IS:
+                # THE PENALTY FOR ALLOCATING A CERTAIN ORDER AT A SPECIFIC TIME
+                # + 400 * EACH GAP INSIDE INDIVIDUAL ORDER SCHEDULES
+                # + 40 * EACH TIME THAT AN ORDER HAS NOT STARTED YET
+
+        THE CONSTRAINTS:
+            ### RULES THAT IMPLEMENT ORDER_SUBORDER SPECIFICS
+            # REQUIRED HOURS MUST BE SCHEDULED FOR AN ORDER_SUBORDER
+
+            ### RULES THAT IMPLEMENT EMPLOYEE_LINE SPECIFICS
+            # EMPLOYEE_LINE ONLY ALLOCATED ONCE PER TIME 
+            # EMPLOYEE_LINE ONLY ALLOWED TO PERFORM SUBORDER IF SKILLED. 
+            # EMPLOYEE_LINE ONLY ALLOWED ALLOCATED IF AVAILABLE.
+
+            ### RULES THAT IMPLEMENT THAT NEXT SUBORDERS CANNOT BE STARTED BEFORE PREVIOUS SUBORDER IS COMPLETED (FOR ATLEAST X%)
+            # PREVIOUS SUBORDER MUST BE COMPLETED FOR ATLEAST X%
+            # PREVIOUS SUBORDER MUST BE COMPLETED FOR A LARGER PERCENTAGE THAN THE NEXT SUBORDER
+
+            ### RULES THAT IMPLEMENT THAT ORDERS ARE ALLOCATED ONLY TO SPECIFIC (TYPE OF) LINES OF EMPLOYEES.
+            # LINE ORDERS ALLOCATED TO LINES
+            # SPECIFIC LINE ORDERS ALLOCATED TO THE SPECIFIC LINE
+            # MANUAL ORDERS ALLOCATED TO EMPLOYEES
+
+            ### RULES THAT IMPLEMENT THE OLD- AND MANUAL PLANNING.
+            # OLD PLANNING // currently inactive, but indirectly active via 'COMBINED PLANNING'
+            # MANUAL PLANNING // currently inactive, but indirectly active via 'COMBINED PLANNING'
+            # COMBINED PLANNING
+
+            ### RULES THAT IMPLEMENT THE GAPS IDENTIFICATION.
+            # BEFORE INDICATES IF THE ORDER_SUBORDER HAS BEEN ALLOCATED BEFORE SPECIFIC TIME
+            # AFTER INDICATES IF THE ORDER_SUBORDER HAS BEEN ALLOCATED AFTER A SPECIFIC TIME
+            # DURING INDICATES IF AT A CERTAIN TIME THE ORDER HAS BEEN STARTED AND HAS NOT YET BEEN FINISHED, THUS INDICATES ALL TIME INTERVALS BETWEEN START AND FINISH OF ORDER
+            # GAPS INDICATES IF BETWEEN THE START AND FINISH TIMES OF AN ORDER_SUBORDER, THE IS AN NOT ALLOCATION AT A CERTAIN TIME. THAT IS, THERE IS A GAP IN THE SCHEDULE. 
+
+        """
         self.m = pyo.ConcreteModel()
 
         ### Retrieving data
@@ -115,7 +158,7 @@ class EWOptimisation:
         self.m.var_during = pyo.Var(self.m.set_gaps_index, domain=pyo.Binary, name='var_gaps_during', doc="Represents the entire period that an order_suborder is scheduled, from start till finish. (var_alloc only gives allocated combination value 1, this also gives combination inbetween start and finish that represent a 'gap' value 1)")
         self.m.var_gaps = pyo.Var(self.m.set_gaps_index, domain=pyo.Binary, name='var_gaps', doc="Represents all the gaps that an order_suborder allocation has.")
 
-    
+        #FIXME: MAKE A CORRECT OBJECTIVE FUNCTION THAT PRIORITIZES THE MOST IMPORTANT ORDERS.
         # Create objective function
         def rule_objectiveFunction(m):
             """This rule minimizes the penalty that allocation get, but also the gaps inside an allocation, that is minimize the amount of gaps between the starting and ending time interval of the order_suborder and \n minimizes the gaps before an allocation, so between the startdate of the timeline and the first allocation of the order_suborder.
@@ -278,7 +321,8 @@ class EWOptimisation:
                 return [prev_order_suborder, percentage, order, suborder, prev_suborder_index]
             else: # if there is not a previous suborder
                 return None 
-            
+
+        # HELPER FUNCTION    
         def get_ratio_completed_hours_for_suborder(m, i, j):
             """Gets the amount of time that have been completed vs the lowerbound required amount of time. The lowerbound is chosen since using the upperbound could mean that ratio 1 is never reached, however using the lowerbound could mean that ratio 1 is reached prematurely. \n If required time is zero, then the ratio returns 0, because dividing by 0 is impossible.
 
@@ -832,3 +876,175 @@ class EWOptimisation:
         self.shortSolution.write_excel_dataframe()
 
 
+
+from general_configuration import feasability_dfs
+
+#TODO: ALSO ADD VBA CHECKING FOR THE MANUAL_PLANNING SHEET. 
+class TestPlanningEW(EWOptimisation):
+    
+    #CLASS TO TEST THE SOLVABILITY OF THE EWOPTIMISATION MODEL.
+
+    #FIXME: The check in 'Input PYTHON' in 'Handmatig Plannen' where 'Incompleet' is checked, could be added. But only after the reorginisation of 'data' because then you can add a instance variable that keeps a list of index combinations that have NaN values. 
+    # Also, check whether initialising with a dataframesclass, eventough there already was a super initialised results in errors.
+    def __init__(self, dataframes_class: Dataframes = None):
+        """Constructor of the TestPlanningEW object.
+
+        Args:
+            dataframes_class (Dataframes): The dataframes that are used to create the pyomo model. Can be left empty in the super() EWOptimisation has already been initialised.
+
+        Raises: ........
+        """
+        if not dataframes_class: # If dataframes_class has been left empty, check whether the super has been intialised, otherwise raise an AttributeError.
+            if not super().initialized_EWOptimisation:
+                raise AttributeError('EWOptimisation has not yet been declared: Please declare "EWOptimisation" object before constructing a "TestPlanning" object or provide the constructor of "TestPlanning" with the "dataframes_class" needed to initialize an "EWOptimisation".')
+        else: # If a dataframes_class is given, initialise the super.
+            super().__init__(dataframes_class=dataframes_class)
+        
+        self.failed_checks = []
+
+
+        self.dataframes_class = super().dataframes_class
+
+        self.list_order_suborder = super().list_order_suborder
+        self.list_time = super().list_time
+        self.list_employee_line = super().list_employee_line
+        self.list_employee = super().list_employee
+        self.list_line = super().list_line
+
+        self.orders_df = self.dataframes_class.get_dataframe_by_name('orders_df').get_pandas_dataframe().copy()
+        self.manual_planning_df = self.dataframes_class.get_dataframe_by_name('manual_planning_df').get_pandas_dataframe().copy()
+        self.old_planning_df = self.dataframes_class.get_dataframe_by_name('old_planning_df').get_pandas_dataframe().copy()
+        self.availability_df = self.dataframes_class.get_dataframe_by_name('availability_df').get_pandas_dataframe().copy()
+        self.specific_order_suborder_df = self.dataframes_class.get_dataframe_by_name('order_specific_df').get_pandas_dataframe().copy()
+        self.skills_df = self.dataframes_class.get_dataframe_by_name('skills_df').get_pandas_dataframe().copy()
+        self.required_hours_df = self.dataframes_class.get_dataframe_by_name('time_req_df').get_pandas_dataframe().copy()
+        self.specific_production_line = self.dataframes_class.get_dataframe_by_name('specific_line_df').get_pandas_dataframe().copy()
+
+    #TODO: Change all self.'s to super().'s that is, make all none's in ewoptimisation to self.'s
+    # Also, for which planning do the checks neet to happen, once for combined planning or for each individual planning? probably each individual planning, since the end user needs to be able to lookup where it went wrong.
+    def checkAll(self):
+        """This method performs all the necessary checks, and reports back whether there are any.
+        """
+        checks = [self.checkManualPlanning, self.checkOldPlanning, self.checkOldJOINEDManualPlanning, self.check_planning_restrictions]
+
+        self.failed_checks.clear()
+
+        for check in checks:
+            try:
+                check()
+            except Exception as e: 
+                self.failed_checks.append(str(e))
+
+        if self.failed_checks:
+            number_of_failed_checks = len(self.failed_checks)
+            print(f"There are {number_of_failed_checks} checks that failed. They represent the following problems: (Please resolve these issues inorder to proceed.)")
+            for check_error in self.failed_checks:
+                print(check_error)
+                print()
+            sys.exit()
+        else:
+            print("All checks passed!")
+
+    def checkManualPlanning(self):
+        planning = self.manual_planning_df
+        name_planning = 'Manual Planning'
+
+        self.check_planning_restrictions(planning_df=planning, name_planning=name_planning)
+            
+    def checkOldPlanning(self):
+        planning = self.old_planning_df
+        name_planning = 'Old Planning'
+
+        self.check_planning_restrictions(planning_df=planning, name_planning=name_planning)
+
+    def checkOldJOINEDManualPlanning(self):
+        if not self.old_planning_df.empty and not self.manual_planning_df.empty:
+            planning = pd.concat([self.old_planning_df, self.manual_planning_df]).drop_duplicates(keep='first')
+        elif not self.old_planning_df.empty and self.manual_planning_df.empty:
+            planning = self.old_planning_df
+        elif self.old_planning_df.empty and not self.manual_planning_df.empty:
+            planning = self.manual_planning_df
+        else:
+            planning = pd.DataFrame
+        
+        name_planning = 'Old AND/OR Manual planning'
+
+        self.check_planning_restrictions(planning_df=planning, name_planning=name_planning) 
+    
+    def check_planning_restrictions(self, planning_df: pd.DataFrame, name_planning: str):
+        if not planning_df.empty:
+            self.checkAvailabilityForPlanning(planning_df=planning_df, name_planning=name_planning)
+            self.checkSkillForPlanning(planning_df=planning_df, name_planning=name_planning)
+            self.checkHoursPlannedPerEmpl_linePerTimeForPlanning(planning_df=planning_df, name_planning=name_planning)
+            self.checkRequiredHoursPlannedUpperboundForPlanning(planning_df=planning_df, name_planning=name_planning)
+            self.checkSpecificLinesForPlanning(planning_df=planning_df, name_planning=name_planning)
+            self.checkAvailabilityOfNumberOfHoursNeeded(planning_df=planning_df, name_planning=name_planning)
+    
+    def checkAvailabilityForPlanning(self, planning_df: pd.DataFrame, name_planning: str):
+        empl_lineTime_help = planning_df.copy().reset_index()
+        
+        group_cols = feasability_dfs.get('empl_line_vs_Time')[1]
+        sum_col = feasability_dfs.get('empl_line_vs_Time')[2]
+        empl_lineTime: pd.DataFrame = empl_lineTime_help.groupby(group_cols)[sum_col].sum() #FIXME: Possibly create a dataframe in dataframes for this. or do this in the cleaning? except if in other checks the sum is not needed, but the normal version.
+        
+        requirement_failed = False
+        failed_combinations = []
+
+        for idx in empl_lineTime.index:
+            empl_line = idx[0]
+            time = idx[1]
+            if (empl_lineTime.loc[empl_line, time] >= 1).any():
+                if not empl_lineTime.loc[empl_line, time].iloc[0] >= self.availability_df.loc[time, empl_line]:
+                    requirement_failed = True
+                    failed_combinations.append([empl_line, time])
+        
+        if requirement_failed == True:
+            raise ValueError(f'"Empl_line should be available when planned" restriction not met in {name_planning}. \n The following combinations were the cause: \n\n {failed_combinations}. \n\n This means that for the above combinations, the planned employee or line is not available at the given time.')
+
+    def checkSkillForPlanning(self, planning_df: pd.DataFrame, name_planning: str):
+        order_suborderEmpl_line_help = planning_df.copy().reset_index()
+        
+        group_cols = feasability_dfs.get('order_suborder_vs_empl_line')[1]
+        sum_col = feasability_dfs.get('order_suborder_vs_empl_line')[2]
+        order_suborderEmpl_line: pd.DataFrame = order_suborderEmpl_line_help.groupby(group_cols)[sum_col].sum()
+
+        specific_order = self.specific_order_suborder_df
+
+        requirement_failed = False
+        failed_combinations = []
+
+        for idx in order_suborderEmpl_line.index:
+            order_suborder = idx[0]
+            empl_line = idx[1]
+            suborder = specific_order.loc[order_suborder].iloc[1]
+
+            if self.skills_df.loc[empl_line, suborder] == 0 and (order_suborderEmpl_line.loc[order_suborder, empl_line].iloc[0] >= 1).any():
+                requirement_failed = True
+                failed_combinations.append([order_suborder, suborder, empl_line])
+        
+        if requirement_failed == True:
+            raise ValueError(f'"Empl_line should possess skills for planned suborder" restriction not met in {name_planning}. \n The following combinations were the cause: \n\n {failed_combinations}. \n\n This means that an employee is planned more than ones at a given moment. This could be due to being planned twice, once in manual_planning and once in the old_planning.')
+    
+    def checkHoursPlannedPerEmpl_linePerTimeForPlanning(self, planning_df: pd.DataFrame, name_planning: str):
+        
+        #FIXME: Double check also the first checker (availability), there it is also used, perhaps there is an easy way to make this accessable in all checks. that is make a function out of it
+        
+        # Looks to be exactly the same availability check, but availability check is less strict, since here all >1 are failed, but in availability only if >= 1 and > availability, but availability is always <= 1 so they are mathematically the same. check if they are also practically the same.
+        empl_lineTime_help = planning_df.copy().reset_index()
+        
+        group_cols = feasability_dfs.get('empl_line_vs_Time')[1]
+        sum_col = feasability_dfs.get('empl_line_vs_Time')[2]
+        empl_lineTime: pd.DataFrame = empl_lineTime_help.groupby(group_cols)[sum_col].sum()
+
+        requirement_failed = False
+        failed_combinations = []
+        
+        for idx in empl_lineTime.index:
+            empl_line = idx[0]
+            time = idx[1]
+            if (empl_lineTime.loc[empl_line, time] > 1).any(): #FIXME: Is irrelevant here? because either use combined, which is either manual or old, but not sum of both, or they are all seen individually meaning no sum. Old thought to check: It is possible to change this, because now if a combination is in both manual and old planning, then the exception is thrown, but this is not neccesarry, it is only neccesaary to change the value to one. instead of the sum of the two plannings.
+                requirement_failed = True
+                failed_combinations.append([empl_line, time])
+        
+        if requirement_failed == True:
+            raise ValueError(f'"Hours planned per empl_line at given moment" restriction is not met in {name_planning}. \n The following combinations were the cause: \n\n {failed_combinations}. \n\n ')

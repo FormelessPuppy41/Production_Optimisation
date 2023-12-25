@@ -3,8 +3,11 @@ from problem_declaration.models import EWOptimisation
 from general_configuration import feasability_dfs
 
 import pandas as pd
+import sys
 
 class SolvabilityTest:
+    """This class contains several subclasses which perform checks on the data before solving, such that possible infeasibilities may already be found.
+    """
     def __init__(self):
         pass
     
@@ -12,8 +15,27 @@ class SolvabilityTest:
         pass
     
     class TestPlanningEW(EWOptimisation):
+        """This subclass of SolvabilityTest checkt the solvability of 'Planning of EW'
+
+        Args:
+            EWOptimisation (pyo.ConcreteModel()): the pyomo model for the EW Optimisation.
+
+        Raises:
+            ValueError: _description_
+            ValueError: _description_
+            ValueError: _description_
+            ValueError: _description_
+            ValueError: _description_
+            ValueError: _description_
+            ValueError: _description_
+        """
         #FIXME: The check in 'Input PYTHON' in 'Handmatig Plannen' where 'Incompleet' is checked, could be added. But only after the reorginisation of 'data' because then you can add a instance variable that keeps a list of index combinations that have NaN values. 
         def __init__(self, ewOptimisation: EWOptimisation):
+            """Constructor of the TestPlanningEW object
+
+            Args:
+                ewOptimisation (EWOptimisation): pyomo model for the EW Optimisation.
+            """
             self.dataframes_class = ewOptimisation.dataframes_class
 
             self.list_order_suborder = ewOptimisation.list_order_suborder
@@ -33,6 +55,28 @@ class SolvabilityTest:
 
         
         def checkAll(self): #TODO: it is possible to combine all errors into one big message, this way users see all possible errors at the same time.
+            """This method performs all the necessary checks, and reports back whether there are any.
+            """
+            checks = ['checkManualPlanning', 'checkOldPlanning', 'checkOldJOINEDManualPlanning', 'check_planning_restrictions']
+
+            failed_checks = []
+
+            for check in checks:
+                try:
+                    check()
+                except Exception as e: 
+                    failed_checks.append(str(e))
+
+            if failed_checks:
+                number_of_failed_checks = len(failed_checks)
+                print(f"There are {number_of_failed_checks} checks that failed. They represent the following problems: (Please solve before continueing)")
+                for check_error in failed_checks:
+                    print(check_error)
+                    print()
+                sys.exit()
+            else:
+                print("All checks passed!")
+
             if not self.checkOldJOINEDManualPlanning():
                 self.checkManualPlanning()
                 self.checkOldPlanning()
@@ -51,7 +95,7 @@ class SolvabilityTest:
 
         def checkOldJOINEDManualPlanning(self):
             if not self.old_planning_df.empty and not self.manual_planning_df.empty:
-                planning = pd.concat([self.old_planning_df, self.manual_planning_df])
+                planning = pd.concat([self.old_planning_df, self.manual_planning_df]).drop_duplicates(keep='first')
             elif not self.old_planning_df.empty and self.manual_planning_df.empty:
                 planning = self.old_planning_df
             elif self.old_planning_df.empty and not self.manual_planning_df.empty:
