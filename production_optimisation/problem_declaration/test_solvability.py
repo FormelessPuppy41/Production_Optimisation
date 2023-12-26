@@ -57,7 +57,7 @@ class SolvabilityTest:
         def checkAll(self): #TODO: it is possible to combine all errors into one big message, this way users see all possible errors at the same time.
             """This method performs all the necessary checks, and reports back whether there are any.
             """
-            checks = ['checkManualPlanning', 'checkOldPlanning', 'checkOldJOINEDManualPlanning', 'check_planning_restrictions']
+            checks = [self.checkManualPlanning, self.checkOldPlanning, self.checkOldJOINEDManualPlanning]
 
             failed_checks = []
 
@@ -69,7 +69,7 @@ class SolvabilityTest:
 
             if failed_checks:
                 number_of_failed_checks = len(failed_checks)
-                print(f"There are {number_of_failed_checks} checks that failed. They represent the following problems: (Please solve before continueing)")
+                print(f"During checking the feasability of the model, there were {number_of_failed_checks} checks that failed. They represent the following problems: (Please solve before continueing)")
                 for check_error in failed_checks:
                     print(check_error)
                     print()

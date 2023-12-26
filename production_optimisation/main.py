@@ -1,5 +1,6 @@
 import re
 import pandas as pd
+from icecream import ic
 
 from data.data_process import Data_process
 from problem_declaration.models import EWOptimisation
@@ -50,7 +51,7 @@ solv_test.checkAll()
 # SOLVE THE ACTUAL MODEL
 ewOpt.solve(solver_options={'timelimit': time_limit})
 # EXPORT THE MODEL TO THE EXCELFILE
-ewOpt.export() # DO NOT EXPORT BEFORE BACKING UP THE EXCEL FILE
+#ewOpt.export() # DO NOT EXPORT BEFORE BACKING UP THE EXCEL FILE
 
 """
 ### OBTAIN A USER INTERFACE FOR END USERS
