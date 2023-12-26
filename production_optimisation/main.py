@@ -3,7 +3,7 @@ import pandas as pd
 from icecream import ic
 
 from data.data_process import Data_process
-from problem_declaration.models import EWOptimisation
+from problem_declaration.models import EWOptimisation, TestPlanningEW
 from problem_declaration.test_solvability import SolvabilityTest
 from ganttChart.gantt_chart import GanttChart
 from general_configuration import path_to_excel, time_limit
@@ -47,6 +47,8 @@ solv_test = SolvabilityTest().TestPlanningEW(ewOpt)
 
 # CHECK WHETHER THE INPUTTED DATA SATISFY THE CONTRAINTS
 solv_test.checkAll()
+
+ewOpt.test_solvability()
 
 # SOLVE THE ACTUAL MODEL
 ewOpt.solve(solver_options={'timelimit': time_limit})

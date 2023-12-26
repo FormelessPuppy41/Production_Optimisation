@@ -31,6 +31,8 @@ class EWOptimisation:
         Args:
             dataframes_class (Dataframes): Dataframes to use inside the model. 
         """
+        #self.EWOptimisation = self
+        
         self.dataframes_class = dataframes_class 
         self.data_index = Data_Index(self.dataframes_class)
         self.excel_file = dataframes_class.get_dataframe_by_index(0).get_excel_file() # All dataframes come from the same file. That is why it simply selects the first dataframe and gets the excelfile. 
@@ -870,43 +872,25 @@ class EWOptimisation:
 
         return results
     
+    def test_solvability(self):
+        testplanning = TestPlanningEW(self)
+        testplanning.checkAll()
+
     def export(self):
         """Exports the short solution to excel.
         """
         self.shortSolution.write_excel_dataframe()
 
 
-
 from general_configuration import feasability_dfs
 
 #TODO: ALSO ADD VBA CHECKING FOR THE MANUAL_PLANNING SHEET. 
-class TestPlanningW(EWOptimisation):
+class TestPlanningEW(EWOptimisation):
     # CLASS TO TEST THE SOLVABILITY OF THE EWOPTIMISATION MODEL.
-
-    # HELPER FUNCTION
-    def group_df(self, dataframeToGroup : pd.DataFrame, groupingName: str) -> pd.DataFrame:
-        """This function groups the inputted dataframe, based on the index- and sumcolumns saved in the feasability_dfs dictionary. 
-
-        Args:
-            dataframeToGroup (pd.DataFrame): Dataframe to group
-            groupingName (str): name of grouping in the feasability_dfs dictionary
-
-        Returns:
-            pd.DataFrame: The grouped dataframe.
-        """
-        #FIXME: Possibly create a dataframe in dataframes for this. or do this in the cleaning? except if in other checks the sum is not needed, but the normal version.
-        
-        group_cols = feasability_dfs.get(groupingName)[1] # Columns to group the dataframe by
-        sum_col = feasability_dfs.get(groupingName)[2] # Columns to sum the grouped dataframe by
-        groupedDataframe = dataframeToGroup.groupby(group_cols)[sum_col].sum()
-
-        return groupedDataframe
-
-
 
     #FIXME: The check in 'Input PYTHON' in 'Handmatig Plannen' where 'Incompleet' is checked, could be added. But only after the reorginisation of 'data' because then you can add a instance variable that keeps a list of index combinations that have NaN values. 
     # Also, check whether initialising with a dataframesclass, eventough there already was a super initialised results in errors.
-    def __init__(self, dataframes_class: Dataframes = None):
+    def __init__(self, ewOptModel: EWOptimisation):
         """Constructor of the TestPlanningEW object.
 
         Args:
@@ -914,15 +898,10 @@ class TestPlanningW(EWOptimisation):
 
         Raises: ........
         """
-        if not dataframes_class: # If dataframes_class has been left empty, check whether the super has been intialised, otherwise raise an AttributeError.
-            if not super().initialized_EWOptimisation:
-                raise AttributeError('EWOptimisation has not yet been declared: Please declare "EWOptimisation" object before constructing a "TestPlanning" object or provide the constructor of "TestPlanning" with the "dataframes_class" needed to initialize an "EWOptimisation".')
-        else: # If a dataframes_class is given, initialise the super.
-            super().__init__(dataframes_class=dataframes_class)
-        
+        super().__init__(ewOptModel.dataframes_class) #FIXME:FIXME:FIXME:FIXME:
+        self.m = ewOptModel
         self.failed_checks = []
-
-
+        ic(super().list_time)
         self.dataframes_class = super().dataframes_class
 
         self.list_order_suborder = super().list_order_suborder
@@ -939,6 +918,24 @@ class TestPlanningW(EWOptimisation):
         self.skills_df = self.dataframes_class.get_dataframe_by_name('skills_df').get_pandas_dataframe().copy()
         self.required_hours_df = self.dataframes_class.get_dataframe_by_name('time_req_df').get_pandas_dataframe().copy()
         self.specific_production_line = self.dataframes_class.get_dataframe_by_name('specific_line_df').get_pandas_dataframe().copy()
+
+    # HELPER FUNCTION
+    def group_df(self, dataframeToGroup : pd.DataFrame, groupingName: str) -> pd.DataFrame:
+        """This function groups the inputted dataframe, based on the index- and sumcolumns saved in the feasability_dfs dictionary. 
+
+        Args:
+            dataframeToGroup (pd.DataFrame): Dataframe to group
+            groupingName (str): name of grouping in the feasability_dfs dictionary
+
+        Returns:
+            pd.DataFrame: The grouped dataframe.
+        """
+        #FIXME: Possibly create a dataframe in dataframes for this. or do this in the cleaning? except if in other checks the sum is not needed, but the normal version.
+        group_cols = feasability_dfs.get(groupingName)[1] # Columns to group the dataframe by
+        sum_col = feasability_dfs.get(groupingName)[2] # Columns to sum the grouped dataframe by
+        groupedDataframe = dataframeToGroup.groupby(group_cols)[sum_col].sum()
+
+        return groupedDataframe
 
     #TODO: Change all self.'s to super().'s that is, make all none's in ewoptimisation to self.'s
     # Also, for which planning do the checks neet to happen, once for combined planning or for each individual planning? probably each individual planning, since the end user needs to be able to lookup where it went wrong.
