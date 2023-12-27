@@ -77,40 +77,6 @@ class GanttChart:
                 except:
                     pass
 
-
-
-        """y_pos = 0
-        #print(order_subset)
-        for order_number in self.specific_solution['Order_number'].unique():
-            order_subset = self.specific_solution[self.specific_solution['Order_number'] == order_number]
-
-            # Plot the horizontal bars
-            ax.barh(
-                y=str(order_number),
-                left=order_subset['time'],
-                width=pd.to_timedelta('1h'),  # Assuming data is hourly
-                height=0.6,
-                align='center',
-                alpha=0.4,
-                label=str(order_number)
-            )
-
-            # Add the order label
-            ax.text(order_subset['time'].min() - pd.to_timedelta('2h'), y_pos, f'Order {order_number}', va='center', ha='right')
-
-            # Increment the y-position for suborders
-            y_pos -= 1
-
-            # Loop through suborders within the current order
-            for suborder in order_subset['Sub_order']:
-                suborder_time = order_subset[order_subset['Sub_order'] == suborder]['time'].min()
-
-                # Plot the suborder label
-                ax.text(suborder_time - pd.to_timedelta('2h'), y_pos, suborder, va='center', ha='right')
-
-                # Increment the y-position for the next suborder
-                y_pos -= 1"""
-
         # Customize the plot
         ax.set_xlabel('Time')
         ax.set_ylabel('Order / Suborder')
@@ -121,41 +87,3 @@ class GanttChart:
         self.plt.xticks(rotation=0)
         ax.legend()
         self.plt.tight_layout()
-
-
-        """
-        for order in self.orders:
-            order_subset = order_subset
-
-        # Loop through each unique 'order_suborder'
-        for order_suborder in self.grouped_df['order_suborder'].unique():
-            subset = self.grouped_df[self.grouped_df['order_suborder'] == order_suborder]
-            
-            # Plot the horizontal bars
-            ax.barh(
-                y=order_suborder,
-                left=subset['time'],
-                width=pd.to_timedelta('1h'),  # Assuming data is hourly
-                height=0.6,
-                align='center',
-                alpha=0.4,
-                label=order_suborder
-            )
-
-        # Customize the plot
-        ax.set_xlabel('Time')
-        ax.set_ylabel('Order_Suborder')
-        ax.set_title('Order Scheduling Gantt Chart')
-        ax.set_xlim(pd.Timestamp('2023-08-21 00:00'), pd.Timestamp('2023-08-23 23:00')) #FIXME: automatically change to starting and ending date.
-        ax.xaxis.grid(True)
-
-        # Format x-axis labels to show time
-        ax.xaxis.set_major_formatter(plt.matplotlib.dates.DateFormatter('%H:%M'))
-
-        # Rotate x-axis labels for better visibility
-        self.plt.xticks(rotation=0)
-
-        # Add legend
-        ax.legend()
-
-        self.plt.tight_layout()"""

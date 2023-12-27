@@ -8,7 +8,6 @@ from problem_declaration.test_solvability import SolvabilityTest
 from ganttChart.gantt_chart import GanttChart
 from general_configuration import path_to_excel, time_limit
 
-
 def read():
     """Reading the data.
 
@@ -32,7 +31,6 @@ def read():
     excel_file = pd.ExcelFile(path_to_excel, engine='openpyxl')
 
     return excel_file
-
 
 def problem(dataProcess: Data_process):
     """Formulate the mathematical model
@@ -58,7 +56,6 @@ def problem(dataProcess: Data_process):
     # EXPORT THE MODEL TO THE EXCELFILE
     #ewOpt.export() # DO NOT EXPORT BEFORE BACKING UP THE EXCEL FILE
 
-
 def solution(ewOptimalisatie: EWOptimisation, dataProcess: Data_process):
     """Transform the solution into a ganttchart.
 
@@ -76,7 +73,6 @@ def solution(ewOptimalisatie: EWOptimisation, dataProcess: Data_process):
     gantt_chart.create_ganttchart()
     # SHOW THE GANTTCHART
     gantt_chart.show_plt()
-
 
 def main():
     """
@@ -99,8 +95,6 @@ def main():
 
     # Create, test and solve the problem.
     problem(process)
-
-
 
 if __name__ == "__main__":
     main()
