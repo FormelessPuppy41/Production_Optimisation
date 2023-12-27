@@ -12,6 +12,7 @@ from data.data_index import Data_Index
 
 from general_configuration import dfs, old_planning_limit
 
+
 """ 
 Aks in ChatGPT:
 how to keep your complicated pyomo project organised, that is if i use variables and sets then i define them as: self.m.var/set because of this i cannot autocomplete or get recommendations for arguments inside the var/set. If i work in a large project this results in difficulties keeping track of the correct indexes and var/set names. How can i overcome this difficulty?
@@ -44,46 +45,45 @@ class EWOptimisation:
 
         self.initialized_EWOptimisation = True
         
-    
     def createModel(self):
-        """Creates the pyomo model that optimizes the production planning for EW.
+        """Creates the pyomo model that optimizes the production planning for EW. \n
 
         THE OBJECTIVE FUNCTION:
-            # MINIMIZE: ALLOCATION * PENALTY + 400 * VAR_GAPS + 400 * VAR_BEFORE 
+            MINIMIZE: ALLOCATION * PENALTY + 400 * VAR_GAPS + 400 * VAR_BEFORE
             
-            # THAT IS:
-                # THE PENALTY FOR ALLOCATING A CERTAIN ORDER AT A SPECIFIC TIME
-                # + 400 * EACH GAP INSIDE INDIVIDUAL ORDER SCHEDULES
-                # + 40 * EACH TIME THAT AN ORDER HAS NOT STARTED YET
-
+            THAT IS:
+                THE PENALTY FOR ALLOCATING A CERTAIN ORDER AT A SPECIFIC TIME \n
+                + 400 * EACH GAP INSIDE INDIVIDUAL ORDER SCHEDULES \n
+                + 40 * EACH TIME THAT AN ORDER HAS NOT STARTED YET
+        \n\n
         THE CONSTRAINTS:
-            ### RULES THAT IMPLEMENT ORDER_SUBORDER SPECIFICS
-            # REQUIRED HOURS MUST BE SCHEDULED FOR AN ORDER_SUBORDER
+                RULES THAT IMPLEMENT ORDER_SUBORDER SPECIFICS \n
+            REQUIRED HOURS MUST BE SCHEDULED FOR AN ORDER_SUBORDER \n
 
-            ### RULES THAT IMPLEMENT EMPLOYEE_LINE SPECIFICS
-            # EMPLOYEE_LINE ONLY ALLOCATED ONCE PER TIME 
-            # EMPLOYEE_LINE ONLY ALLOWED TO PERFORM SUBORDER IF SKILLED. 
-            # EMPLOYEE_LINE ONLY ALLOWED ALLOCATED IF AVAILABLE.
+                RULES THAT IMPLEMENT EMPLOYEE_LINE SPECIFICS \n
+            EMPLOYEE_LINE ONLY ALLOCATED ONCE PER TIME \n
+            EMPLOYEE_LINE ONLY ALLOWED TO PERFORM SUBORDER IF SKILLED. \n
+            EMPLOYEE_LINE ONLY ALLOWED ALLOCATED IF AVAILABLE. \n\n
 
-            ### RULES THAT IMPLEMENT THAT NEXT SUBORDERS CANNOT BE STARTED BEFORE PREVIOUS SUBORDER IS COMPLETED (FOR ATLEAST X%)
-            # PREVIOUS SUBORDER MUST BE COMPLETED FOR ATLEAST X%
-            # PREVIOUS SUBORDER MUST BE COMPLETED FOR A LARGER PERCENTAGE THAN THE NEXT SUBORDER
+                RULES THAT IMPLEMENT THAT NEXT SUBORDERS CANNOT BE STARTED BEFORE PREVIOUS SUBORDER IS COMPLETED (FOR ATLEAST X%) \n
+            PREVIOUS SUBORDER MUST BE COMPLETED FOR ATLEAST X% \n
+            PREVIOUS SUBORDER MUST BE COMPLETED FOR A LARGER PERCENTAGE THAN THE NEXT SUBORDER \n\n
 
-            ### RULES THAT IMPLEMENT THAT ORDERS ARE ALLOCATED ONLY TO SPECIFIC (TYPE OF) LINES OF EMPLOYEES.
-            # LINE ORDERS ALLOCATED TO LINES
-            # SPECIFIC LINE ORDERS ALLOCATED TO THE SPECIFIC LINE
-            # MANUAL ORDERS ALLOCATED TO EMPLOYEES
+                RULES THAT IMPLEMENT THAT ORDERS ARE ALLOCATED ONLY TO SPECIFIC (TYPE OF) LINES OF EMPLOYEES. \n
+            LINE ORDERS ALLOCATED TO LINES \n
+            SPECIFIC LINE ORDERS ALLOCATED TO THE SPECIFIC LINE \n
+            MANUAL ORDERS ALLOCATED TO EMPLOYEES \n\n
 
-            ### RULES THAT IMPLEMENT THE OLD- AND MANUAL PLANNING.
-            # OLD PLANNING // currently inactive, but indirectly active via 'COMBINED PLANNING'
-            # MANUAL PLANNING // currently inactive, but indirectly active via 'COMBINED PLANNING'
-            # COMBINED PLANNING
+                RULES THAT IMPLEMENT THE OLD- AND MANUAL PLANNING. \n
+            OLD PLANNING // currently inactive, but indirectly active via 'COMBINED PLANNING' \n
+            MANUAL PLANNING // currently inactive, but indirectly active via 'COMBINED PLANNING' \n
+            COMBINED PLANNING \n\n
 
-            ### RULES THAT IMPLEMENT THE GAPS IDENTIFICATION.
-            # BEFORE INDICATES IF THE ORDER_SUBORDER HAS BEEN ALLOCATED BEFORE SPECIFIC TIME
-            # AFTER INDICATES IF THE ORDER_SUBORDER HAS BEEN ALLOCATED AFTER A SPECIFIC TIME
-            # DURING INDICATES IF AT A CERTAIN TIME THE ORDER HAS BEEN STARTED AND HAS NOT YET BEEN FINISHED, THUS INDICATES ALL TIME INTERVALS BETWEEN START AND FINISH OF ORDER
-            # GAPS INDICATES IF BETWEEN THE START AND FINISH TIMES OF AN ORDER_SUBORDER, THE IS AN NOT ALLOCATION AT A CERTAIN TIME. THAT IS, THERE IS A GAP IN THE SCHEDULE. 
+                RULES THAT IMPLEMENT THE GAPS IDENTIFICATION. \n
+            BEFORE INDICATES IF THE ORDER_SUBORDER HAS BEEN ALLOCATED BEFORE SPECIFIC TIME \n
+            AFTER INDICATES IF THE ORDER_SUBORDER HAS BEEN ALLOCATED AFTER A SPECIFIC TIME \n
+            DURING INDICATES IF AT A CERTAIN TIME THE ORDER HAS BEEN STARTED AND HAS NOT YET BEEN FINISHED, THUS INDICATES ALL TIME INTERVALS BETWEEN START AND FINISH OF ORDER \n
+            GAPS INDICATES IF BETWEEN THE START AND FINISH TIMES OF AN ORDER_SUBORDER, THE IS AN NOT ALLOCATION AT A CERTAIN TIME. THAT IS, THERE IS A GAP IN THE SCHEDULE. 
 
         """
         self.m = pyo.ConcreteModel()
@@ -98,35 +98,35 @@ class EWOptimisation:
         self.list_line = self.data_index.get_index_set('line')
 
         # Retrieve dataframes that represent specific columns of the 'order_df'. 
-        dates_df = self.dataframes_class.get_dataframe_by_name('dates_df').get_pandas_dataframe()
-        revenue_df = self.dataframes_class.get_dataframe_by_name('revenue_df').get_pandas_dataframe()
-        time_req_df = self.dataframes_class.get_dataframe_by_name('time_req_df').get_pandas_dataframe()
+        self.dates_df = self.dataframes_class.get_dataframe_by_name('dates_df').get_pandas_dataframe()
+        self.revenue_df = self.dataframes_class.get_dataframe_by_name('revenue_df').get_pandas_dataframe()
+        self.time_req_df = self.dataframes_class.get_dataframe_by_name('time_req_df').get_pandas_dataframe()
 
         # Obtain series of the above mentioned df's for easy usage throughout this file.
-        date_start = dates_df.iloc[:, 0]
-        date_deadline = dates_df.iloc[:, 1]
-        revenue = revenue_df.iloc[:, 0]
-        time_req_lb = time_req_df.iloc[:, 0]
-        time_req_ub = time_req_df.iloc[:, 1]
+        self.date_start = self.dates_df.iloc[:, 0]
+        self.date_deadline = self.dates_df.iloc[:, 1]
+        self.revenue = self.revenue_df.iloc[:, 0]
+        time_req_lb = self.time_req_df.iloc[:, 0]
+        time_req_ub = self.time_req_df.iloc[:, 1]
 
         # Retrieve the dataframes containing the (manipulated) data from excel.
-        skills_df = self.dataframes_class.get_dataframe_by_name('skills_df').get_pandas_dataframe()
-        availability_df = self.dataframes_class.get_dataframe_by_name('availability_df').get_pandas_dataframe()
-        specific_order_suborder = self.dataframes_class.get_dataframe_by_name('order_specific_df').get_pandas_dataframe()
-        specific_line_df = self.dataframes_class.get_dataframe_by_name('specific_line_df').get_pandas_dataframe()
-        exec_on_line_df = self.dataframes_class.get_dataframe_by_name('line_indicator_df').get_pandas_dataframe()
-        penalty_df = self.dataframes_class.get_dataframe_by_name('penalty_df').get_pandas_dataframe()
-        suborders_df = self.dataframes_class.get_dataframe_by_name('next_prev_suborder_df').get_pandas_dataframe()
-        percentage_df = self.dataframes_class.get_dataframe_by_name('percentage_df').get_pandas_dataframe()
-        old_planning_df = self.dataframes_class.get_dataframe_by_name('old_planning_df').get_pandas_dataframe()
-        manual_planning_df = self.dataframes_class.get_dataframe_by_name('manual_planning_df').get_pandas_dataframe()
-        combined_planning_df = self.dataframes_class.get_dataframe_by_name('old_and_manual_planning_df').get_pandas_dataframe()
+        self.skills_df = self.dataframes_class.get_dataframe_by_name('skills_df').get_pandas_dataframe()
+        self.availability_df = self.dataframes_class.get_dataframe_by_name('availability_df').get_pandas_dataframe()
+        self.specific_order_suborder = self.dataframes_class.get_dataframe_by_name('order_specific_df').get_pandas_dataframe()
+        self.specific_line_df = self.dataframes_class.get_dataframe_by_name('specific_line_df').get_pandas_dataframe()
+        self.exec_on_line_df = self.dataframes_class.get_dataframe_by_name('line_indicator_df').get_pandas_dataframe()
+        self.penalty_df = self.dataframes_class.get_dataframe_by_name('penalty_df').get_pandas_dataframe()
+        self.suborders_df = self.dataframes_class.get_dataframe_by_name('next_prev_suborder_df').get_pandas_dataframe()
+        self.percentage_df = self.dataframes_class.get_dataframe_by_name('percentage_df').get_pandas_dataframe()
+        self.old_planning_df = self.dataframes_class.get_dataframe_by_name('old_planning_df').get_pandas_dataframe()
+        self.manual_planning_df = self.dataframes_class.get_dataframe_by_name('manual_planning_df').get_pandas_dataframe()
+        self.combined_planning_df = self.dataframes_class.get_dataframe_by_name('old_and_manual_planning_df').get_pandas_dataframe()
 
         # Create dataframe where unique_code can be looked for by using specific order and suborder. (order, suborder) -> (order_suborder)
             # NOTE: This can be made a 'specific' function if we implement subclasses of the dataframe class, like it is stated in the todo's
             # RENAME: reverseSearch_specific_order_suborder?!
-        transpose_specific_order_suborder = specific_order_suborder.copy()
-        transpose_index = specific_order_suborder.columns.to_list()
+        transpose_specific_order_suborder = self.specific_order_suborder.copy()
+        transpose_index = self.specific_order_suborder.columns.to_list()
         transpose_specific_order_suborder.reset_index(inplace=True)
         transpose_specific_order_suborder.set_index(transpose_index, inplace=True)
 
@@ -180,7 +180,7 @@ class EWOptimisation:
             """
             penalty = \
                 sum(
-                    m.var_alloc[i, j, k] * penalty_df.loc[j, i]
+                    m.var_alloc[i, j, k] * self.penalty_df.loc[j, i]
                     for i in m.set_order_suborder
                     for j in m.set_time
                     for k in m.set_employee_line
@@ -261,13 +261,13 @@ class EWOptimisation:
             Returns:
                 Expression: 0 <= allocation(sum over time) <= 1 (skills_df has binary value (0/1))
             """
-            suborder = specific_order_suborder.loc[i].iloc[1]
+            suborder = self.specific_order_suborder.loc[i].iloc[1]
             return (0, 
                     sum(
                         m.var_alloc[(i, j, k)] 
                         for j in m.set_time
                         ), 
-                    m.upperbound_of_time * skills_df.loc[k, suborder]
+                    m.upperbound_of_time * self.skills_df.loc[k, suborder]
                     ) # NOTE: Instead of creating a constraint for each individual 'time' index, we sum over the entire 'time' index to reduce the amount of constraints, leading to quicker solving times. 
         self.m.constr_onlyAllocIfEmpl_lineSkilled = pyo.Constraint(self.m.set_order_suborder, self.m.set_employee_line, rule= rule_onlyAllocIfEmpl_lineSkilled)
 
@@ -286,7 +286,7 @@ class EWOptimisation:
             """
             return (0, 
                     m.var_alloc[(i, j, k)], 
-                    availability_df.loc[j, k])  
+                    self.availability_df.loc[j, k])  
         self.m.constr_onlyAllocIfEmpl_lineAvailable = pyo.Constraint(self.m.set_order_suborder, self.m.set_time, self.m.set_employee_line, rule= rule_onlyAllocIfEmpl_lineAvailable)
 
         ### RULES THAT IMPLEMENT THAT NEXT SUBORDERS CANNOT BE STARTED BEFORE PREVIOUS SUBORDER IS COMPLETED (FOR ATLEAST X%)
@@ -301,9 +301,9 @@ class EWOptimisation:
             Returns:
                 List: if there is a previous suborder: [order, suborder, percentage, prev_suborder_index, prev_order_suborder], if there is no previous suborder: None. /n So, in handling the case where there is no previous suborder one can check if the output is 'None'
             """
-            order = specific_order_suborder.loc[i].iloc[0]
-            suborder = specific_order_suborder.loc[i].iloc[1]
-            percentage = percentage_df.loc[i].iloc[0]
+            order = self.specific_order_suborder.loc[i].iloc[0]
+            suborder = self.specific_order_suborder.loc[i].iloc[1]
+            percentage = self.percentage_df.loc[i].iloc[0]
 
             # Not all orders follow the same route through the suborders. To prevent this from resulting in problem, we loop through each previous suborder until we find the first present suborder.
             # NOTE:This might be improved by adding a prev_sub and next_sub to the orders_df, but this is dependent on which data the client stores for connections between orders.
@@ -426,7 +426,7 @@ class EWOptimisation:
             Returns:
                 Expression: 0 <= allocation(sum over time)(for all employees {k}) <= 0 if order_suborder {i} should be allocated on a line, else constraint is skipped.
             """
-            if exec_on_line_df.loc[i].iloc[0]: # Check whether an order_suborder should be preformed on a line.
+            if self.exec_on_line_df.loc[i].iloc[0]: # Check whether an order_suborder should be preformed on a line.
                 return (0, sum(m.var_alloc[(i, j, k)] for j in m.set_time), 0)
             else:
                 return pyo.Constraint.Skip # Skips the constraint if an order_suborder should not be preformed on a line.
@@ -446,7 +446,7 @@ class EWOptimisation:
             Returns:
                 Expression: 0 <= allocation(sum over time) <= 0, for employee_line {k} if the order_suborder must be allocated by a specific line other than the current employee_line {k}, else the constraint is skipped.
             """
-            specific_line = specific_line_df.loc[i].iloc[0]
+            specific_line = self.specific_line_df.loc[i].iloc[0]
             
             if specific_line != '': # Continue only if the order_suborder {k} has a specific line on which it must be preformed.
                 if specific_line != k: # if employee_line {k} is not equal to the specific line
@@ -468,7 +468,7 @@ class EWOptimisation:
             Returns:
                 Expression: 0 <= allocation(sum over time) <= 0, if order_suborder {i} is not executed on a line (that is, is executed by employees) then the order_suborder cannot be allocated to lines.
             """
-            if not exec_on_line_df.loc[i].iloc[0]: # If the order_suborder is not executed on a line -> it is executed by employees.
+            if not self.exec_on_line_df.loc[i].iloc[0]: # If the order_suborder is not executed on a line -> it is executed by employees.
                 return (0, m.var_alloc[(i, j, k)], 0)
             else:
                 return pyo.Constraint.Skip
@@ -490,8 +490,8 @@ class EWOptimisation:
             """
             if j <= pd.to_datetime(old_planning_limit, format='%d-%m-%Y %H:%M:%S'): # Only take into account the old schedule if the time {j} is smaller than the old_planning_limit, that represents the benchmark until which point the old planning must be taken into account.
                 try:
-                    if old_planning_df.loc[i, j, k] == 1: # If there is an old allocation, then bind the new allocation to the old. 
-                        return m.var_alloc[(i, j, k)] == int(old_planning_df.loc[i, j, k])
+                    if self.old_planning_df.loc[i, j, k] == 1: # If there is an old allocation, then bind the new allocation to the old. 
+                        return m.var_alloc[(i, j, k)] == int(self.old_planning_df.loc[i, j, k])
                     else: # If there is no old allocation, skip the constraint. (this can happen when {i} is scheduled, but not at time {j} or by employee_line {k})
                         return pyo.Constraint.Skip
                 except: # If there is not value for {i, j, k} in the old planning, then skip the constraint.
@@ -514,8 +514,8 @@ class EWOptimisation:
                 Expression: new_allocation = manual_planning, if there is an manual_allocation. 
             """
             try:
-                if manual_planning_df.loc[i, j, k] == 1.0: # If there exists a manual_allocation, else skip the constraint. 
-                    return m.var_alloc[(i, j, k)] == int(manual_planning_df.loc[i, j, k])
+                if self.manual_planning_df.loc[i, j, k] == 1.0: # If there exists a manual_allocation, else skip the constraint. 
+                    return m.var_alloc[(i, j, k)] == int(self.manual_planning_df.loc[i, j, k])
                 else:
                     return pyo.Constraint.Skip
             except:
@@ -538,8 +538,8 @@ class EWOptimisation:
                 Expression: new_allocation = manual_allocation or old_allocation, if one is present, if both are present the manual_allocation will be followed. Old_allocations will only be implemented if they happen before the old_planning_limit.
             """
             try:
-                if combined_planning_df.loc[i, j, k] == 1: # If either there is a manual_ or an old_planning present, otherwise skip the constraint.
-                    return m.var_alloc[(i, j, k)] == combined_planning_df.loc[i, j, k]
+                if self.combined_planning_df.loc[i, j, k] == 1: # If either there is a manual_ or an old_planning present, otherwise skip the constraint.
+                    return m.var_alloc[(i, j, k)] == self.combined_planning_df.loc[i, j, k]
                 else:
                     return pyo.Constraint.Skip
             except:
@@ -872,316 +872,13 @@ class EWOptimisation:
 
         return results
     
-    def test_solvability(self):
+    #FIXME:
+    """def test_solvability(self):
         testplanning = TestPlanningEW(self)
-        testplanning.checkAll()
+        testplanning.checkAll()"""
 
     def export(self):
         """Exports the short solution to excel.
         """
         self.shortSolution.write_excel_dataframe()
-
-
-from general_configuration import feasability_dfs
-
-#TODO: ALSO ADD VBA CHECKING FOR THE MANUAL_PLANNING SHEET. 
-class TestPlanningEW(EWOptimisation):
-    # CLASS TO TEST THE SOLVABILITY OF THE EWOPTIMISATION MODEL.
-
-    #FIXME: The check in 'Input PYTHON' in 'Handmatig Plannen' where 'Incompleet' is checked, could be added. But only after the reorginisation of 'data' because then you can add a instance variable that keeps a list of index combinations that have NaN values. 
-    # Also, check whether initialising with a dataframesclass, eventough there already was a super initialised results in errors.
-    def __init__(self, ewOptModel: EWOptimisation):
-        """Constructor of the TestPlanningEW object.
-
-        Args:
-            dataframes_class (Dataframes): The dataframes that are used to create the pyomo model. Can be left empty in the super() EWOptimisation has already been initialised.
-
-        Raises: ........
-        """
-        super().__init__(ewOptModel.dataframes_class) #FIXME:FIXME:FIXME:FIXME:
-        self.m = ewOptModel
-        self.failed_checks = []
-        ic(super().list_time)
-        self.dataframes_class = super().dataframes_class
-
-        self.list_order_suborder = super().list_order_suborder
-        self.list_time = super().list_time
-        self.list_employee_line = super().list_employee_line
-        self.list_employee = super().list_employee
-        self.list_line = super().list_line
-
-        self.orders_df = self.dataframes_class.get_dataframe_by_name('orders_df').get_pandas_dataframe().copy()
-        self.manual_planning_df = self.dataframes_class.get_dataframe_by_name('manual_planning_df').get_pandas_dataframe().copy()
-        self.old_planning_df = self.dataframes_class.get_dataframe_by_name('old_planning_df').get_pandas_dataframe().copy()
-        self.availability_df = self.dataframes_class.get_dataframe_by_name('availability_df').get_pandas_dataframe().copy()
-        self.specific_order_suborder_df = self.dataframes_class.get_dataframe_by_name('order_specific_df').get_pandas_dataframe().copy()
-        self.skills_df = self.dataframes_class.get_dataframe_by_name('skills_df').get_pandas_dataframe().copy()
-        self.required_hours_df = self.dataframes_class.get_dataframe_by_name('time_req_df').get_pandas_dataframe().copy()
-        self.specific_production_line = self.dataframes_class.get_dataframe_by_name('specific_line_df').get_pandas_dataframe().copy()
-
-    # HELPER FUNCTION
-    def group_df(self, dataframeToGroup : pd.DataFrame, groupingName: str) -> pd.DataFrame:
-        """This function groups the inputted dataframe, based on the index- and sumcolumns saved in the feasability_dfs dictionary. 
-
-        Args:
-            dataframeToGroup (pd.DataFrame): Dataframe to group
-            groupingName (str): name of grouping in the feasability_dfs dictionary
-
-        Returns:
-            pd.DataFrame: The grouped dataframe.
-        """
-        #FIXME: Possibly create a dataframe in dataframes for this. or do this in the cleaning? except if in other checks the sum is not needed, but the normal version.
-        group_cols = feasability_dfs.get(groupingName)[1] # Columns to group the dataframe by
-        sum_col = feasability_dfs.get(groupingName)[2] # Columns to sum the grouped dataframe by
-        groupedDataframe = dataframeToGroup.groupby(group_cols)[sum_col].sum()
-
-        return groupedDataframe
-
-    #TODO: Change all self.'s to super().'s that is, make all none's in ewoptimisation to self.'s
-    # Also, for which planning do the checks neet to happen, once for combined planning or for each individual planning? probably each individual planning, since the end user needs to be able to lookup where it went wrong.
-    # make a helpfunction for the 'group' part. 
-    def checkAll(self):
-        """
-        This method performs all the necessary checks, and reports back whether there are any.
-        """
-        checks = [self.checkManualPlanning, self.checkOldPlanning, self.checkOldJOINEDManualPlanning]
-
-        self.failed_checks.clear()
-
-        for check in checks:
-            try:
-                check()
-            except Exception as e: 
-                self.failed_checks.append(str(e))
-
-        if self.failed_checks:
-            number_of_failed_checks = len(self.failed_checks)
-            print(f"There are {number_of_failed_checks} checks that failed. They represent the following problems: (Please resolve these issues inorder to proceed.)")
-            for check_error in self.failed_checks:
-                print(check_error)
-                print()
-            sys.exit()
-        else:
-            print("All checks passed!")
-
-    def checkManualPlanning(self):
-        planning = self.manual_planning_df
-        name_planning = 'Manual Planning'
-
-        self.check_planning_restrictions(planning_df=planning, name_planning=name_planning)
-            
-    def checkOldPlanning(self):
-        planning = self.old_planning_df
-        name_planning = 'Old Planning'
-
-        self.check_planning_restrictions(planning_df=planning, name_planning=name_planning)
-
-    def checkOldJOINEDManualPlanning(self):
-        if not self.old_planning_df.empty and not self.manual_planning_df.empty:
-            planning = pd.concat([self.old_planning_df, self.manual_planning_df]).drop_duplicates(keep='first')
-        elif not self.old_planning_df.empty and self.manual_planning_df.empty:
-            planning = self.old_planning_df
-        elif self.old_planning_df.empty and not self.manual_planning_df.empty:
-            planning = self.manual_planning_df
-        else:
-            planning = pd.DataFrame
-        
-        name_planning = 'Old AND/OR Manual planning'
-
-        self.check_planning_restrictions(planning_df=planning, name_planning=name_planning) 
-    
-    def check_planning_restrictions(self, planning_df: pd.DataFrame, name_planning: str):
-        if not planning_df.empty:
-            self.checkAvailabilityForPlanning(planning_df=planning_df, name_planning=name_planning)
-            self.checkSkillForPlanning(planning_df=planning_df, name_planning=name_planning)
-            self.checkRequiredHoursPlannedUpperboundForPlanning(planning_df=planning_df, name_planning=name_planning)
-            self.checkSpecificLinesForPlanning(planning_df=planning_df, name_planning=name_planning)
-            self.checkAvailabilityOfNumberOfHoursNeeded(planning_df=planning_df, name_planning=name_planning)
-    
-    def checkAvailabilityForPlanning(self, planning_df: pd.DataFrame, name_planning: str):
-        """This check makes sure that the planning follows the availability constraint. That is, for all employee_line's their maximum availability is not exceeded at any given time. 
-
-        Args:
-            planning_df (pd.DataFrame): planning df from excel to check
-            name_planning (str): name of the planning (shown when an error happens to indicate where the problem lies)
-
-        Raises:
-            ValueError: Indicates that an availability error is present in the "name_planning", and reports for which records the errors are present.
-        """
-        empl_lineTime_help = planning_df.copy().reset_index()
-        
-        # Obtain the sum of allocations for each employee_line for each time.
-        empl_lineTime = self.group_df(empl_lineTime_help, 'empl_line_vs_Time')
-  
-        requirement_failed = False
-        failed_combinations = []
-
-        # loop through each employee_time and time and check whether any of these values has an allocation (value >=1), if so check whether this exceeds their availability.
-        for idx in empl_lineTime.index:
-            empl_line = idx[0]
-            time = idx[1]
-            if (empl_lineTime.loc[empl_line, time] >= 1).any(): # note the values are integers, since allocation is a binary.
-                if not empl_lineTime.loc[empl_line, time].iloc[0] >= self.availability_df.loc[time, empl_line]: # Check whether the total allocations per empl_line per time exceeds their availability.
-                    requirement_failed = True 
-                    failed_combinations.append([empl_line, time]) # Add all (employee_line, time) combinations that exceed the availability.
-        
-        if requirement_failed == True: # If there is an error in the inputted planning, return a error that indicates where these error lie. 
-            raise ValueError(f'"Empl_line should be available when planned" restriction not met in {name_planning}. \n The following combinations were the cause: \n\n {failed_combinations}. \n\n This means that for the above combinations, the planned employee or line is not available at the given time.')
-
-    def checkSkillForPlanning(self, planning_df: pd.DataFrame, name_planning: str):
-        """This check makes sure that there are no allocations where the employee_line is not skilled to perform the specific suborder.
-
-        Args:
-            planning_df (pd.DataFrame): planning df from excel to check
-            name_planning (str): name of the planning (shown when an error happens to indicate where the problem lies)
-
-        Raises:
-            ValueError: Indicates that a skill error is present in the "name_planning", and reports for which records the errors are present.
-        """
-        order_suborderEmpl_line_help = planning_df.copy().reset_index()
-        
-        # Obtain the sum of allocations for each employeeline for each time.
-        order_suborderEmpl_line = self.group_df(order_suborderEmpl_line_help, 'order_suborder_vs_empl_line')
-
-        # For extracting the suborder for a unique order_suborder combination.
-        specific_order = self.specific_order_suborder_df
-
-        requirement_failed = False
-        failed_combinations = []
-
-        # Loop through each employee and order_suborder to check whether any of these values violate the skill constraint.
-        for idx in order_suborderEmpl_line.index:
-            order_suborder = idx[0]
-            empl_line = idx[1]
-            suborder = specific_order.loc[order_suborder].iloc[1]
-
-            # Check whether the empl_line is skilled to perform a specific suborder.
-            if self.skills_df.loc[empl_line, suborder] == 0 and (order_suborderEmpl_line.loc[order_suborder, empl_line].iloc[0] >= 1).any():
-                requirement_failed = True
-                failed_combinations.append([order_suborder, empl_line]) # add the (order_suborder, employee_line) combinations that result in the errors.
-        
-        if requirement_failed == True: # If there is an error in the inputted planning, return a error that indicates where these error lie. 
-            raise ValueError(f'"Empl_line should possess skills for planned suborder" restriction not met in {name_planning}. \n The following combinations were the cause: \n\n {failed_combinations}. \n\n This means that an employee is planned more than ones at a given moment. This could be due to being planned twice, once in manual_planning and once in the old_planning.')
-        
-        if requirement_failed == True:
-            raise ValueError(f'"Hours planned per empl_line at given moment" restriction is not met in {name_planning}. \n The following combinations were the cause: \n\n {failed_combinations}. \n\n ')
-
-    #FIXME: What if it is necessary to exceed it because of underestimation, how can one sucombe that?
-    def checkRequiredHoursPlannedUpperboundForPlanning(self, planning_df: pd.DataFrame, name_planning: str):
-        """Checks whether the planning does not exceed the needed amount of hours upperbound. 
-
-         Args:
-            planning_df (pd.DataFrame): planning df from excel to check
-            name_planning (str): name of the planning (shown when an error happens to indicate where the problem lies)
-
-        Raises:
-            ValueError: Indicates that a skill error is present in the "name_planning", and reports for which records the errors are present.
-        """
-        # Possibly also add the old planning? because that is taken as an absolute aswell. 
-        hoursPlanned_help = planning_df.copy().reset_index()
-        
-        # Obtain the sum of allocations for each employee_line for each time.
-        hoursPlanned = self.group_df(hoursPlanned_help, 'order_suborder_vs_allocation')
-        
-        requirement_failed = False
-        failed_combinations = []
-
-        # Loop through the different order_suborders and check the scheduled amount of hours vs the required.
-        for idx in hoursPlanned.index:
-            order_suborder = idx
-            upperbound = self.required_hours_df.loc[order_suborder].iloc[1]
-            hoursScheduled = hoursPlanned.loc[order_suborder]
-
-            if (hoursScheduled > upperbound).any(): # if the scheduled amount of hours is larger than the required amount, an error has occured.
-                requirement_failed = True
-                excess_hours = (hoursScheduled - upperbound).values.item()
-                
-                failed_combinations.append([order_suborder, f'X excess hours planned, with X={excess_hours}. There is a maximum of {upperbound} that can be scheduled.'])
-        
-        if requirement_failed == True:
-            raise ValueError(f'"Hours planned for order_suborder less than or equal to upperbound" restriction is not met in {name_planning}. \n The following combinations were the cause: \n\n {failed_combinations}\n\n This means these orders are scheduled too many times, such that they have exceeded their required amount of hours.')
-    #FIXME: Add a checker for specifics from the orders_df, such as specific line etc. 
-
-    def checkSpecificLinesForPlanning(self, planning_df: pd.DataFrame, name_planning: str):
-        specificLinePlanned_help = planning_df.copy().reset_index()
-        
-        # Obtain the sum of order_suborders planned for specific employee_lines
-        specificLinePlanned = self.group_df(specificLinePlanned_help, 'order_suborder_vs_empl_line')
-        group_cols = feasability_dfs.get('order_suborder_vs_empl_line')[1]
-        sum_col = feasability_dfs.get('order_suborder_vs_empl_line')[2]
-        specificLinePlanned: pd.DataFrame = specificLinePlanned_help.groupby(group_cols)[sum_col].sum()
-
-        specific_line_df = self.specific_production_line
-        
-        requirement_failed = False
-        failed_combinations = []
-
-        # Loop through the (order_suborder, employee_line) combinations.
-        for idx in specificLinePlanned.index:
-            order_suborder = idx[0]
-            empl_line = idx[1]
-
-            if order_suborder in specific_line_df.index: # Check whether the order_suborder exists in the specific_line dataframe. That is, the order has a specific line on which it must be performed. 
-                # if it does, obtain the specific line on which the order might need to be allocated.
-                specific_line = specific_line_df.loc[order_suborder].iloc[0]
-                if specific_line != '': 
-                    if specificLinePlanned.loc[order_suborder, empl_line].iloc[0] == 1: 
-                        if empl_line != specific_line: # If the empl_line is not equal to the required specific line
-                            requirement_failed = True
-
-                            failed_combinations.append([order_suborder, empl_line])
-        
-        if requirement_failed == True:
-            raise ValueError(f'"Specific line restriction" was not met in {name_planning}, The following combinations were the cause of the failed requirements: \n\n {failed_combinations}' )
-        
-
-    # Testing restrictions for the model, which are not about the planning.
-    def checkAvailabilityOfNumberOfHoursNeeded(self, planning_df: pd.DataFrame, name_planning: str): #FIXME: Add a way to get all the combinations that are possible, without 'counting' certain points double. That is, if someone does MAG, they cannot also preform SMD at that same moment => lower maximum per suborder. 
-
-        # create a df that gets the maximum amount of allocations per suborder
-        max_numberOfAllocationsPerSuborder_df = self.availability_df.dot(self.skills_df).sum(axis=0)
-
-        # the maximum of total allocations is:
-        max_numberOfAllocations = self.availability_df.sum(axis=0).sum(axis=0)
-
-        # find a way to make a list of not just the max per suborder, but for all possible combinations where employees are allocated once per time interval 
-        allowedCombinationsList = []
-
-        # Needed number of allocations per suborder
-        group_cols = feasability_dfs.get('specific_order_req_time_df')[1]
-        sum_col = feasability_dfs.get('specific_order_req_time_df')[2]
-        reqTimePerSuborder = self.orders_df.copy().reset_index().groupby(group_cols)[sum_col].sum()
-
-        # how to cleaverly check whether a combination is possible, add one to each suborder each time or? is there a way to use like ai. 
-
-        
-        # checks whether there is asked to schedule more than is even possible in the given time ranges.
-        print(reqTimePerSuborder)
-        if reqTimePerSuborder.sum(axis=0).iloc[0] > max_numberOfAllocations:
-            raise ValueError(f'"Hour availability in Planning" was not met in {name_planning}, The total sum of all required time intervals were the cause of the failed requirements')
-
-        allowed = True
-        # for combination in allowedCombinationsList:
-        for suborder in max_numberOfAllocationsPerSuborder_df.index:
-            if suborder != 'NONE':
-                # checks whether more time is required for a suborder than is possible in the given time ranges
-                if max_numberOfAllocationsPerSuborder_df.loc[suborder] < reqTimePerSuborder.loc[suborder].iloc[0]:
-                    allowed = False
-                    print(f'"Hour availability in Planning" was not met in {name_planning}')
-                    print(f'The sum of all required time intervals were the cause of the failed requirements in the following suborder: {suborder}')
-                    raise ValueError(f'"Hour availability in Planning" was not met in {name_planning}, The sum of all required time intervals were the cause of the failed requirements in the following suborder: {suborder}')
-
-        """for suborder in max_numberOfAllocationsPerSuborder_df.index:
-            # checks whether more time is required than there is in the current combination.
-            if combination.loc[suborder] < reqTimePerSuborder.loc[suborder]:
-                allowed = False
-                break # Break or Raise? same as above"""
-        
-        # checks whether the current combination completed all tests, if so the program can be stopped because there should not be any problems with the hours needed for the planning, as there is at least one 'solution' for the allocation of time over suborders.
-        if allowed == True:
-            pass # a possible solution format has been found, so no need to search further. 
-                
-        # is there a way to make a list of all possible combinations, that are valid. That is a a person can only be allocated once every time interval. 
-
-    #Also add the check above, but then for people, such that needed planned hours per persion(that is specific_line) is enough. 
 
