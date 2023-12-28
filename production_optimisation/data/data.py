@@ -20,8 +20,8 @@ class BaseDataframe:
 
         self.pandas_ExcelFile  = pandas_ExcelFile
         self.pandas_Dataframe: Union[
-            Type[pd.DataFrame], 
-            Type[pd.Series]
+            pd.DataFrame, 
+            pd.Series
             ] = None
 
         self.status_cleaned: bool = False
@@ -97,8 +97,8 @@ class BaseDataframe:
     def change_pandas_Dataframe(
             self, 
             changed_Dataframe: Union[
-                Type[pd.DataFrame], 
-                Type[pd.Series]
+                pd.DataFrame, 
+                pd.Series
                 ]
             ):
         """Changes the pd.DataFrame/pd.Series to {changed_Dataframe}. 
@@ -123,6 +123,11 @@ class BaseDataframe:
     ### ACTIONS PERFORMED ON THE DATAFRAME
     def clean():
         """Empty clean function, since cleaning method depends on the Dataframe type.
+        """
+        pass
+
+    def build():
+        """Empty build function, since building method depends on the Dataframe type.
         """
         pass
 
@@ -158,7 +163,14 @@ class BaseDataframe:
         
         return new_Dataframe
 
+    ### READING/WRITING DATA FROM/TO EXCEL
     def read_Dataframe_fromExcel(self):
+        """Read the dataframe from excel. First validates whether the name of the excelsheet can be found.
+
+        Raises:
+            ValueError: Dataframe does not have a value for {name_ExcelSheet}.
+            ValueError: Dataframe's {name_ExcelSheet} cannot be found in the sheet_names of the ExcelFile.
+        """
         self.validate_name_ExcelSheet()
         
         self.pandas_Dataframe = pd.read_excel(
@@ -194,6 +206,7 @@ class BaseDataframe:
         ic(f'Dataframe ({self.name_Dataframe}) written to ExcelFile in sheet ({self.name_ExcelSheet}) correctly.')
 
     ### HELPER FUNCTIONS
+    # Validation
     def validate_name_ExcelSheet(self):
         """Validate whether the name of the ExcelSheet can be found in the sheet_names of the ExcelFile.
 
@@ -216,15 +229,203 @@ class BaseDataframe:
         # If the given sheet_name can be found in the given ExcelFile.
         elif self.name_ExcelSheet in self.pandas_ExcelFile.sheet_names:
             pass
+    
+    # Frame manipulations
+    def change_index_to_firstCol(self):
+        """Changes the index of the dataframe to the first column of the dataframe.
+        """
+        if not self.pandas_Dataframe.empty:
+            columns = self.pandas_Dataframe.columns
+            self.pandas_Dataframe = self.pandas_Dataframe.set_index(columns[0])
+
 
 
 class ordersDataframe(BaseDataframe):
-    def __init__(self) -> None:
-        super().__init__()
+    """The ordersDataframe is a class that is used to describe the ordersDF.
+    Subclass of the BaseDataframe
+
+    Subclass of:
+        BaseDataframe: Basic description of Dataframes.
+    """
+    def __init__(
+            self, 
+            pandas_ExcelFile: pd.ExcelFile, 
+            name_Dataframe: str, 
+            name_ExcelSheet: str = None, 
+            name_DataframeType: str = None
+            ) -> None:
+        
+        super().__init__(
+            pandas_ExcelFile, 
+            name_Dataframe, 
+            name_ExcelSheet, 
+            name_DataframeType
+            )
+
+        # During cleaning the description column is excluded to preserve the format.
+        self.columns_to_exclude_cleaning = ['Description']
+        self.columns_to_clean = self.pandas_Dataframe.columns.drop(self.columns_to_exclude_cleaning)
     
-    def clean():
+    ### SUBCLASS SPECIFIC FUNCTIONS
+    def clean(self):
+        """Cleans the orders dataframe by changing all strings to uppercase and otherwise returning the element for the columns that need to be cleaned.
+        """
+        if not self.status_cleaned: # If the dataframe has not yet been cleaned, clean it.
+            for col in self.columns_to_clean:
+                self.pandas_Dataframe[col] = self.pandas_Dataframe[col].apply(
+                        lambda x: self.clean_orderDF_elements(x)
+                        )
+                
+            self.change_cleaned_status(True)
+
+    #FIXME: Add data validation for missing data.
+    def validate_data(self):
         pass
+
+    ### HELPER FUNCTIONS
+    def clean_orderDF_elements(self, element):
+        """This function cleans the actual elements of each column based on the datatype of the column.
+        String -> uppercase String
+        Else -> No change
+
+        Args:
+            element (_type_): elements of the ordersDF
+
+        Returns:
+            _type_: The cleaned element
+        """
+        if element:
+            if pd.notna(element) and isinstance(element, str):
+                return element.upper()
+            else:
+                return element
+        else:
+            return element
+    
+        
+
+class indexSetsDataframe(BaseDataframe):
+    def __init__(
+            self, 
+            pandas_ExcelFile: pd.ExcelFile, 
+            name_Dataframe: str, 
+            name_ExcelSheet: str = None, 
+            name_DataframeType: str = None
+            ) -> None:
+        
+        super().__init__(
+            pandas_ExcelFile, 
+            name_Dataframe, 
+            name_ExcelSheet, 
+            name_DataframeType
+            )
+
+    #TODO: Add getters for all index sets. 
+    def get_indexes():
+        pass    
+        
+    def clean(self):
+        if not self.status_cleaned:
+            self.pandas_Dataframe = self.pandas_Dataframe.apply(
+                lambda x: self.clean_indexDF_elements(x)
+                )
+            
+            self.change_cleaned_status(True)
+        pass    
+    
+    ### HELPER FUNCTIONS
+    def clean_indexDF_elements(self, element):
+        if element and pd.notna(element):
+            if isinstance(element, str):
+                return element.upper()
+            elif isinstance(element, pd.Timestamp):
+                return element
+            elif isinstance(element, float):
+                return int(element)
+        else:
+            return element
+
+
+
+class oldPlanningDataframe(BaseDataframe):
+    def __init__(
+            self, 
+            pandas_ExcelFile: pd.ExcelFile, 
+            name_Dataframe: str, 
+            name_ExcelSheet: str = None, 
+            name_DataframeType: str = None
+            ) -> None:
+        
+        super().__init__(
+            pandas_ExcelFile, 
+            name_Dataframe, 
+            name_ExcelSheet, 
+            name_DataframeType
+            )
+
+    def clean(self):
+        if not self.pandas_Dataframe.empty and not self.status_cleaned:
+            columns = self.pandas_Dataframe.columns.to_list()
+            index_columns = [idx for idx in columns if columns.index(idx) <= 2]
+
+            self.pandas_Dataframe = self.pandas_Dataframe.set_index(index_columns)
+            self.pandas_Dataframe.columns = ['allocation']
+
+            # Drop rows with value 0.0
+            self.pandas_Dataframe = self.pandas_Dataframe[self.pandas_Dataframe != 0.0]
+
+            self.change_cleaned_status(True)
+    
+
+
+class manualPlanningDataframe(BaseDataframe):
+    def __init__(
+            self, 
+            pandas_ExcelFile: pd.ExcelFile, 
+            name_Dataframe: str, 
+            name_ExcelSheet: str = None, 
+            name_DataframeType: str = None
+            ) -> None:
+        
+        super().__init__(
+            pandas_ExcelFile, 
+            name_Dataframe, 
+            name_ExcelSheet, 
+            name_DataframeType
+            )
+        
+
+    def clean(self):
+        if not self.pandas_Dataframe.empty and not self.status_cleaned:
+            self.pandas_Dataframe = self.pandas_Dataframe.rename_axis('time', axis=1)
+
+            self.pandas_Dataframe = self.pandas_Dataframe.stack()
+            self.pandas_Dataframe.name = 'allocation'
+            
+            # Drop rows with value 0.0
+            self.pandas_Dataframe = self.pandas_Dataframe[self.pandas_Dataframe != 0.0]
+
+            self.pandas_Dataframe = self.pandas_Dataframe.reorder_levels(
+                ['order_suborder','time', 'empl_line']
+                )
+            
+            self.change_cleaned_status(True)
+
+
 
 class ManagerDataframes:
     def __init__(self) -> None:
-        pass
+        self.stored_Dataframes = []
+        
+    def store_Dataframe(
+            self,
+            dataframe_to_store: BaseDataframe
+            ):
+        if not dataframe_to_store.get_status_stored():
+            self.stored_Dataframes.append(dataframe_to_store)
+    
+    def remove_Dataframe(
+            self, 
+            dataframe_to_delete: BaseDataframe
+        ):
+        self.stored_Dataframes.remove(dataframe_to_delete)
