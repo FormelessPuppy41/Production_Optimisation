@@ -1,11 +1,14 @@
 import pandas as pd
 import openpyxl
 from icecream import ic
-from typing import Type, Union
+from typing import Union
 
-from general_configuration import dfs
 
+#TODO: Fix all fixme's and todo's and documentation before continueing to building new dataframes.
+# Then test whether this below works using test_data.py.
 class BaseDataframe:
+    """_summary_
+    """
     def __init__(
             self, 
             pandas_ExcelFile: pd.ExcelFile, 
@@ -16,7 +19,7 @@ class BaseDataframe:
         
         self.name_Dataframe = name_Dataframe
         self.name_ExcelSheet = name_ExcelSheet
-        self.name_DataframeType = name_DataframeType
+        self.name_DataframeType = name_DataframeType #FIXME: Unnecessary?
 
         self.pandas_ExcelFile  = pandas_ExcelFile
         self.pandas_Dataframe: Union[
@@ -28,6 +31,9 @@ class BaseDataframe:
         self.status_stored: bool = False
 
         self.fillna_value = None
+
+        if not self.fillna_value:
+            self.fillna_value = ''
 
     ### RETRIEVING INFORMATION ABOUT THE DATAFRAME
     # Retrieve names
@@ -91,7 +97,10 @@ class BaseDataframe:
         Args:
             new_value (_type_): The new value which fills the NaN values.
         """
-        self.type_fillna = new_value
+        if not new_value:
+            self.fillna_value = ''
+        else:
+            self.fillna_value = new_value
 
     # Change pandas
     def change_pandas_Dataframe(
@@ -177,7 +186,7 @@ class BaseDataframe:
             io=self.pandas_ExcelFile.io,
             sheet_name=self.name_ExcelSheet,
             engine='openpyxl'
-        ).fillna(self.type_fillna)
+        ).fillna(self.fillna_value)
 
     def write_Dataframe_toExcel(self):
         """Write the dataframe to excel. First validates whether the name of the excelsheet can be found.
@@ -204,6 +213,10 @@ class BaseDataframe:
                 )
         
         ic(f'Dataframe ({self.name_Dataframe}) written to ExcelFile in sheet ({self.name_ExcelSheet}) correctly.')
+
+    #FIXME: Add data validation for missing data. Same for other dataframes that have index sets as input, are they the correct format?
+    def validate_data(self):
+        pass
 
     ### HELPER FUNCTIONS
     # Validation
@@ -240,7 +253,7 @@ class BaseDataframe:
 
 
 
-class ordersDataframe(BaseDataframe):
+class OrderDataframe(BaseDataframe):
     """The ordersDataframe is a class that is used to describe the ordersDF.
     Subclass of the BaseDataframe
 
@@ -271,16 +284,18 @@ class ordersDataframe(BaseDataframe):
         """Cleans the orders dataframe by changing all strings to uppercase and otherwise returning the element for the columns that need to be cleaned.
         """
         if not self.status_cleaned: # If the dataframe has not yet been cleaned, clean it.
+            self.change_index_to_firstCol()  
+
+            # Clean individual column elements
             for col in self.columns_to_clean:
                 self.pandas_Dataframe[col] = self.pandas_Dataframe[col].apply(
                         lambda x: self.clean_orderDF_elements(x)
                         )
-                
+            
+            # Remove empty rows
+            self.pandas_Dataframe = self.pandas_Dataframe[self.pandas_Dataframe != '']
+            
             self.change_cleaned_status(True)
-
-    #FIXME: Add data validation for missing data.
-    def validate_data(self):
-        pass
 
     ### HELPER FUNCTIONS
     def clean_orderDF_elements(self, element):
@@ -304,7 +319,13 @@ class ordersDataframe(BaseDataframe):
     
         
 
-class indexSetsDataframe(BaseDataframe):
+class IndexSetsDataframe(BaseDataframe):
+    """The indexSetsDataframe is a class that is used to describe the IndexDF.
+    Subclass of the BaseDataframe
+
+    Subclass of:
+        BaseDataframe: Basic description of Dataframes.
+    """
     def __init__(
             self, 
             pandas_ExcelFile: pd.ExcelFile, 
@@ -320,11 +341,32 @@ class indexSetsDataframe(BaseDataframe):
             name_DataframeType
             )
 
-    #TODO: Add getters for all index sets. 
-    def get_indexes():
-        pass    
+    ### RETRIEVE SPECIFIC INDEX SETS
+    def get_orders_suborder_set(self):
+        return self.pandas_Dataframe['Orders_suborders']
+    
+    def get_orders_set(self):
+        return self.pandas_Dataframe['Orders']
+    
+    def get_suborders_set(self):
+        return self.pandas_Dataframe['Sub_orders']
+    
+    def get_time_intervals_set(self):
+        return self.pandas_Dataframe['Time_intervals']
+    
+    def get_employee_line_set(self):
+        return self.pandas_Dataframe['Employee_line']
+    
+    def get_employee_set(self):
+        return self.pandas_Dataframe['Employees']
+    
+    def get_employee_set(self):
+        return self.pandas_Dataframe['Production_lines']
+    
         
     def clean(self):
+        """Clean the indexDF by changing all strings to uppercase, timestamp is left as it is, floats are made to integer.
+        """
         if not self.status_cleaned:
             self.pandas_Dataframe = self.pandas_Dataframe.apply(
                 lambda x: self.clean_indexDF_elements(x)
@@ -335,6 +377,14 @@ class indexSetsDataframe(BaseDataframe):
     
     ### HELPER FUNCTIONS
     def clean_indexDF_elements(self, element):
+        """This function cleans all the actual elements based on their datatype
+
+        Args:
+            element (_type_): elements of the indexDF
+
+        Returns:
+            _type_: The cleaned element
+        """
         if element and pd.notna(element):
             if isinstance(element, str):
                 return element.upper()
@@ -347,7 +397,13 @@ class indexSetsDataframe(BaseDataframe):
 
 
 
-class oldPlanningDataframe(BaseDataframe):
+class OldPlanningDataframe(BaseDataframe):
+    """The oldPlanningDataframe is a class that is used to describe the oldPlanningDF.
+    Subclass of the BaseDataframe
+
+    Subclass of:
+        BaseDataframe: Basic description of Dataframes.
+    """
     def __init__(
             self, 
             pandas_ExcelFile: pd.ExcelFile, 
@@ -364,6 +420,8 @@ class oldPlanningDataframe(BaseDataframe):
             )
 
     def clean(self):
+        """Clean the oldPlanningDF by changing all strings to uppercase, timestamp is left as it is, floats are made to integer.
+        """
         if not self.pandas_Dataframe.empty and not self.status_cleaned:
             columns = self.pandas_Dataframe.columns.to_list()
             index_columns = [idx for idx in columns if columns.index(idx) <= 2]
@@ -374,11 +432,16 @@ class oldPlanningDataframe(BaseDataframe):
             # Drop rows with value 0.0
             self.pandas_Dataframe = self.pandas_Dataframe[self.pandas_Dataframe != 0.0]
 
-            self.change_cleaned_status(True)
-    
+            self.change_cleaned_status(True) 
 
 
-class manualPlanningDataframe(BaseDataframe):
+class ManualPlanningDataframe(BaseDataframe):
+    """The oldPlanningDataframe is a class that is used to describe the oldPlanningDF.
+    Subclass of the BaseDataframe
+
+    Subclass of:
+        BaseDataframe: Basic description of Dataframes.
+    """
     def __init__(
             self, 
             pandas_ExcelFile: pd.ExcelFile, 
@@ -393,10 +456,25 @@ class manualPlanningDataframe(BaseDataframe):
             name_ExcelSheet, 
             name_DataframeType
             )
+    
+    """def read_Dataframe_fromExcel(self):
+        self.validate_name_ExcelSheet()
+
+        self.pandas_Dataframe = pd.read_excel(
+            io=self.pandas_ExcelFile.io,
+            sheet_name=self.name_ExcelSheet,
+            engine='openpyxl',
+            index_col=[0, 1]
+        ).fillna(self.type_fillna)"""
         
 
     def clean(self):
+        """Clean the manualPlanningDataframe by changing all strings to uppercase, timestamp is left as it is, floats are made to integer.
+        """
         if not self.pandas_Dataframe.empty and not self.status_cleaned:
+            index_columns = self.pandas_Dataframe.columns.to_list()[:1]
+            self.pandas_Dataframe = self.pandas_Dataframe.set_index(index_columns)
+
             self.pandas_Dataframe = self.pandas_Dataframe.rename_axis('time', axis=1)
 
             self.pandas_Dataframe = self.pandas_Dataframe.stack()
@@ -412,20 +490,88 @@ class manualPlanningDataframe(BaseDataframe):
             self.change_cleaned_status(True)
 
 
+class AvailabilityDataframe(BaseDataframe):
+    def __init__(
+            self, 
+            pandas_ExcelFile: pd.ExcelFile, 
+            name_Dataframe: str, 
+            name_ExcelSheet: str = None, 
+            name_DataframeType: str = None
+            ) -> None:
+        super().__init__(
+            pandas_ExcelFile, 
+            name_Dataframe, 
+            name_ExcelSheet, 
+            name_DataframeType
+            )
+    
+    def clean(self):
+        if not self.status_cleaned:
+            self.change_index_to_firstCol()
+
+            self.change_cleaned_status(True)
+
+
+
+class SkillDataframe(BaseDataframe):
+    def __init__(
+            self, 
+            pandas_ExcelFile: pd.ExcelFile, 
+            name_Dataframe: str, 
+            name_ExcelSheet: str = None, 
+            name_DataframeType: str = None
+            ) -> None:
+        super().__init__(
+            pandas_ExcelFile, 
+            name_Dataframe, 
+            name_ExcelSheet, 
+            name_DataframeType
+            )
+    
+    def clean(self):
+        if not self.status_cleaned:
+            self.change_index_to_firstCol()
+
+            self.change_cleaned_status(True) #FIXME: Could this be done with a wrapper?
+    
+
 
 class ManagerDataframes:
+    """This class is used to store different dataframes. It can then be used to fetch or remove certain dataframes based on their name.
+    """
     def __init__(self) -> None:
-        self.stored_Dataframes = []
+        self.stored_Dataframes = {}
         
     def store_Dataframe(
             self,
-            dataframe_to_store: BaseDataframe
+            name_dataframe: str,
+            dataframe_to_store: BaseDataframe, 
+            overwrite: bool = False
             ):
+        """Store a dataframe in the dictionary.
+
+        Args:
+            dataframe_to_store (BaseDataframe): Dataframe to store (Can also be subclass of BaseDataframe))
+        """
         if not dataframe_to_store.get_status_stored():
-            self.stored_Dataframes.append(dataframe_to_store)
+            self.stored_Dataframes[name_dataframe] = dataframe_to_store
+        else:
+            if overwrite:
+                self.stored_Dataframes[name_dataframe] = dataframe_to_store
     
     def remove_Dataframe(
             self, 
-            dataframe_to_delete: BaseDataframe
+            name_Dataframe: str
         ):
-        self.stored_Dataframes.remove(dataframe_to_delete)
+        """Remove a dataframe in the dictionary.
+
+        Args:
+            dataframe_to_delete (BaseDataframe): Dataframe to store (Can also be subclass of BaseDataframe)
+        """
+        # Check if the DataFrame exists in the dictionary
+        if name_Dataframe in self.store_Dataframe:
+            # Remove the DataFrame
+            del self.stored_Dataframes[name_Dataframe]
+        else:
+            raise KeyError(f"DataFrame with name '{name_Dataframe}' not found in the dictionary.")
+        
