@@ -14,18 +14,21 @@ class BaseDataframe:
             pandas_ExcelFile: pd.ExcelFile, 
             name_Dataframe: str, 
             name_ExcelSheet: str = None,
-            name_DataframeType: str = None
+            bool_read_df: bool = True,
+            bool_build_df: bool = False
             ) -> None:
         
         self.name_Dataframe = name_Dataframe
         self.name_ExcelSheet = name_ExcelSheet
-        self.name_DataframeType = name_DataframeType #FIXME: Unnecessary?
+        
+        self.bool_read_df = bool_read_df 
+        self.bool_build_df = bool_build_df
 
         self.pandas_ExcelFile  = pandas_ExcelFile
         self.pandas_Dataframe: Union[
             pd.DataFrame, 
             pd.Series
-            ] = None
+            ] = pd.DataFrame()
 
         self.status_cleaned: bool = False
         self.status_stored: bool = False
@@ -42,9 +45,6 @@ class BaseDataframe:
     
     def get_name_ExcelSheet(self) -> str:
         return self.name_ExcelSheet
-    
-    def get_name_DataframeType(self) -> str:
-        return self.name_DataframeType
     
     # Retrieve pandas
     def get_pandas_ExcelFile(self) -> pd.ExcelFile:
@@ -130,12 +130,12 @@ class BaseDataframe:
         self.name_ExcelSheet = name_new_ExcelSheet
 
     ### ACTIONS PERFORMED ON THE DATAFRAME
-    def clean():
+    def clean(self):
         """Empty clean function, since cleaning method depends on the Dataframe type.
         """
         pass
 
-    def build():
+    def build(self):
         """Empty build function, since building method depends on the Dataframe type.
         """
         pass
@@ -174,19 +174,21 @@ class BaseDataframe:
 
     ### READING/WRITING DATA FROM/TO EXCEL
     def read_Dataframe_fromExcel(self):
-        """Read the dataframe from excel. First validates whether the name of the excelsheet can be found.
+        """Read the dataframe from excel, if indicated in df declaration that it is needed (bool_read_df). First validates whether the name of the excelsheet can be found.
 
         Raises:
             ValueError: Dataframe does not have a value for {name_ExcelSheet}.
             ValueError: Dataframe's {name_ExcelSheet} cannot be found in the sheet_names of the ExcelFile.
         """
-        self.validate_name_ExcelSheet()
-        
-        self.pandas_Dataframe = pd.read_excel(
-            io=self.pandas_ExcelFile.io,
-            sheet_name=self.name_ExcelSheet,
-            engine='openpyxl'
-        ).fillna(self.fillna_value)
+        if self.bool_read_df:
+            self._validate_name_ExcelSheet()
+            
+            self.pandas_Dataframe = pd.read_excel(
+                io=self.pandas_ExcelFile.io,
+                sheet_name=self.name_ExcelSheet,
+                engine='openpyxl'
+            ).fillna(self.fillna_value)
+
 
     def write_Dataframe_toExcel(self):
         """Write the dataframe to excel. First validates whether the name of the excelsheet can be found.
@@ -195,7 +197,7 @@ class BaseDataframe:
             ValueError: Dataframe does not have a value for {name_ExcelSheet}.
             ValueError: Dataframe's {name_ExcelSheet} cannot be found in the sheet_names of the ExcelFile.
         """
-        self.validate_name_ExcelSheet()
+        self._validate_name_ExcelSheet()
 
         # Use pd.ExcelWriter as a Writer, to write the excelfile to a sheet in the ExcelFile.
         with pd.ExcelWriter(
@@ -220,7 +222,7 @@ class BaseDataframe:
 
     ### HELPER FUNCTIONS
     # Validation
-    def validate_name_ExcelSheet(self):
+    def _validate_name_ExcelSheet(self):
         """Validate whether the name of the ExcelSheet can be found in the sheet_names of the ExcelFile.
 
         Raises:
@@ -244,7 +246,7 @@ class BaseDataframe:
             pass
     
     # Frame manipulations
-    def change_index_to_firstCol(self):
+    def _change_index_to_firstCol(self):
         """Changes the index of the dataframe to the first column of the dataframe.
         """
         if not self.pandas_Dataframe.empty:
@@ -265,40 +267,48 @@ class OrderDataframe(BaseDataframe):
             pandas_ExcelFile: pd.ExcelFile, 
             name_Dataframe: str, 
             name_ExcelSheet: str = None, 
-            name_DataframeType: str = None
+            bool_read_df: bool = True
             ) -> None:
         
         super().__init__(
             pandas_ExcelFile, 
             name_Dataframe, 
             name_ExcelSheet, 
-            name_DataframeType
+            bool_read_df
             )
 
-        # During cleaning the description column is excluded to preserve the format.
-        self.columns_to_exclude_cleaning = ['Description']
-        self.columns_to_clean = self.pandas_Dataframe.columns.drop(self.columns_to_exclude_cleaning)
-    
     ### SUBCLASS SPECIFIC FUNCTIONS
     def clean(self):
         """Cleans the orders dataframe by changing all strings to uppercase and otherwise returning the element for the columns that need to be cleaned.
         """
-        if not self.status_cleaned: # If the dataframe has not yet been cleaned, clean it.
-            self.change_index_to_firstCol()  
+        """if isinstance(self.pandas_Dataframe.columns, pd.Index):
+            ic('RESET INDEX')
+            ic(self.pandas_Dataframe.index)
+            self.pandas_Dataframe = self.pandas_Dataframe.reset_index(drop=True)"""
 
+        if not self.status_cleaned: # If the dataframe has not yet been cleaned, clean it.
+            self._change_index_to_firstCol()  
+
+            # During cleaning the description column is excluded to preserve the format.
+            columns_to_exclude_cleaning = ['Description']
+            columns_to_clean = self.pandas_Dataframe.columns.drop(columns_to_exclude_cleaning)
+            
+            ic(2, self.pandas_Dataframe)
+            
             # Clean individual column elements
-            for col in self.columns_to_clean:
+            for col in columns_to_clean:
                 self.pandas_Dataframe[col] = self.pandas_Dataframe[col].apply(
-                        lambda x: self.clean_orderDF_elements(x)
+                        lambda x: self._clean_orderDF_elements(x)
                         )
             
             # Remove empty rows
             self.pandas_Dataframe = self.pandas_Dataframe[self.pandas_Dataframe != '']
+            self.pandas_Dataframe.fillna(self.fillna_value)
             
             self.change_cleaned_status(True)
 
     ### HELPER FUNCTIONS
-    def clean_orderDF_elements(self, element):
+    def _clean_orderDF_elements(self, element):
         """This function cleans the actual elements of each column based on the datatype of the column.
         String -> uppercase String
         Else -> No change
@@ -312,12 +322,10 @@ class OrderDataframe(BaseDataframe):
         if element:
             if pd.notna(element) and isinstance(element, str):
                 return element.upper()
-            else:
+            elif pd.notna(element):
                 return element
-        else:
-            return element
     
-        
+
 
 class IndexSetsDataframe(BaseDataframe):
     """The indexSetsDataframe is a class that is used to describe the IndexDF.
@@ -331,14 +339,14 @@ class IndexSetsDataframe(BaseDataframe):
             pandas_ExcelFile: pd.ExcelFile, 
             name_Dataframe: str, 
             name_ExcelSheet: str = None, 
-            name_DataframeType: str = None
+            bool_read_df: bool = True
             ) -> None:
         
         super().__init__(
             pandas_ExcelFile, 
             name_Dataframe, 
             name_ExcelSheet, 
-            name_DataframeType
+            bool_read_df
             )
 
     ### RETRIEVE SPECIFIC INDEX SETS
@@ -369,14 +377,14 @@ class IndexSetsDataframe(BaseDataframe):
         """
         if not self.status_cleaned:
             self.pandas_Dataframe = self.pandas_Dataframe.apply(
-                lambda x: self.clean_indexDF_elements(x)
+                lambda x: self._clean_indexDF_elements(x)
                 )
             
             self.change_cleaned_status(True)
         pass    
     
     ### HELPER FUNCTIONS
-    def clean_indexDF_elements(self, element):
+    def _clean_indexDF_elements(self, element):
         """This function cleans all the actual elements based on their datatype
 
         Args:
@@ -409,14 +417,14 @@ class OldPlanningDataframe(BaseDataframe):
             pandas_ExcelFile: pd.ExcelFile, 
             name_Dataframe: str, 
             name_ExcelSheet: str = None, 
-            name_DataframeType: str = None
+            bool_read_df: bool = True
             ) -> None:
         
         super().__init__(
             pandas_ExcelFile, 
             name_Dataframe, 
             name_ExcelSheet, 
-            name_DataframeType
+            bool_read_df
             )
 
     def clean(self):
@@ -447,14 +455,14 @@ class ManualPlanningDataframe(BaseDataframe):
             pandas_ExcelFile: pd.ExcelFile, 
             name_Dataframe: str, 
             name_ExcelSheet: str = None, 
-            name_DataframeType: str = None
+            bool_read_df: bool = True
             ) -> None:
         
         super().__init__(
             pandas_ExcelFile, 
             name_Dataframe, 
             name_ExcelSheet, 
-            name_DataframeType
+            bool_read_df
             )
     
     """def read_Dataframe_fromExcel(self):
@@ -496,18 +504,18 @@ class AvailabilityDataframe(BaseDataframe):
             pandas_ExcelFile: pd.ExcelFile, 
             name_Dataframe: str, 
             name_ExcelSheet: str = None, 
-            name_DataframeType: str = None
+            bool_read_df: bool = True
             ) -> None:
         super().__init__(
             pandas_ExcelFile, 
             name_Dataframe, 
             name_ExcelSheet, 
-            name_DataframeType
+            bool_read_df
             )
     
     def clean(self):
         if not self.status_cleaned:
-            self.change_index_to_firstCol()
+            self._change_index_to_firstCol()
 
             self.change_cleaned_status(True)
 
@@ -519,20 +527,20 @@ class SkillDataframe(BaseDataframe):
             pandas_ExcelFile: pd.ExcelFile, 
             name_Dataframe: str, 
             name_ExcelSheet: str = None, 
-            name_DataframeType: str = None
+            bool_read_df: bool = True
             ) -> None:
         super().__init__(
             pandas_ExcelFile, 
             name_Dataframe, 
             name_ExcelSheet, 
-            name_DataframeType
+            bool_read_df
             )
     
     def clean(self):
         if not self.status_cleaned:
-            self.change_index_to_firstCol()
+            self._change_index_to_firstCol()
 
-            self.change_cleaned_status(True) #FIXME: Could this be done with a wrapper?
+            self.change_cleaned_status(True)
     
 
 
@@ -541,24 +549,18 @@ class ManagerDataframes:
     """
     def __init__(self) -> None:
         self.stored_Dataframes = {}
-        
+
     def store_Dataframe(
             self,
-            name_dataframe: str,
-            dataframe_to_store: BaseDataframe, 
-            overwrite: bool = False
-            ):
-        """Store a dataframe in the dictionary.
-
-        Args:
-            dataframe_to_store (BaseDataframe): Dataframe to store (Can also be subclass of BaseDataframe))
-        """
-        if not dataframe_to_store.get_status_stored():
-            self.stored_Dataframes[name_dataframe] = dataframe_to_store
+            dataframe_to_store: BaseDataframe = None
+        ):
+        if dataframe_to_store:
+            name_df = dataframe_to_store.name_Dataframe
+            self.stored_Dataframes[name_df] = dataframe_to_store
         else:
-            if overwrite:
-                self.stored_Dataframes[name_dataframe] = dataframe_to_store
-    
+            print(f'Dataframe has not been stored since given dataframe_to_store ({dataframe_to_store}) is empty')
+            pass
+
     def remove_Dataframe(
             self, 
             name_Dataframe: str
@@ -575,3 +577,21 @@ class ManagerDataframes:
         else:
             raise KeyError(f"DataFrame with name '{name_Dataframe}' not found in the dictionary.")
         
+    def get_Dataframe(
+            self, 
+            name_Dataframe: str
+        ) -> BaseDataframe:
+        if name_Dataframe in self.stored_Dataframes:
+            return self.stored_Dataframes[name_Dataframe]
+        
+        else:
+            suggested_similar_names =  self._suggest_names_similar(name=name_Dataframe)
+            suggested_all_names = self._suggest_names_all(name=name_Dataframe)
+            raise ValueError(f"The given name '{name_Dataframe}' cannot be found in the stored names. \n Did you mean one of these: {', '.join(suggested_similar_names)}? \n If not, select one of the saved names: {', '.join(suggested_all_names)}")
+    
+    ### HELPER FUNCTIONS
+    def _suggest_names_similar(self, name: str):
+        return [df_name for df_name in self.stored_Dataframes if name.lower() in df_name.lower()]
+    
+    def _suggest_names_all(self, name: str):
+        return [df_name for df_name in self.stored_Dataframes]

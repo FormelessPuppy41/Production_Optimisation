@@ -75,6 +75,7 @@ class Data_Cleaner:
             
             self.pandas_df = self.pandas_df[self.pandas_df.index != '']
             
+            print(self.pandas_df)
             self.dataframe.change_pandas_dataframe(self.pandas_df)
             self.dataframe.change_status_to_cleaned()
 
