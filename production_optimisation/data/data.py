@@ -15,7 +15,8 @@ class BaseDataframe:
             name_Dataframe: str, 
             name_ExcelSheet: str = None,
             bool_read_df: bool = True,
-            bool_build_df: bool = False
+            bool_build_df: bool = False, 
+            fillna_value = None
             ) -> None:
         
         self.name_Dataframe = name_Dataframe
@@ -33,10 +34,10 @@ class BaseDataframe:
         self.status_cleaned: bool = False
         self.status_stored: bool = False
 
-        self.fillna_value = None
-
-        if not self.fillna_value:
+        if not fillna_value:
             self.fillna_value = ''
+        else:
+            self.fillna_value = fillna_value
 
     ### RETRIEVING INFORMATION ABOUT THE DATAFRAME
     # Retrieve names
@@ -131,12 +132,12 @@ class BaseDataframe:
 
     ### ACTIONS PERFORMED ON THE DATAFRAME
     def clean(self):
-        """Empty clean function, since cleaning method depends on the Dataframe type.
+        """Empty clean function, since cleaning method depends on the Dataframe type. \n Specify the subclass in order to clean it.
         """
         pass
 
     def build(self):
-        """Empty build function, since building method depends on the Dataframe type.
+        """Empty build function, since building method depends on the Dataframe type. \n Specify the subclass in order to build it.
         """
         pass
 
@@ -150,7 +151,7 @@ class BaseDataframe:
             name_new_Dataframe (str): name of the new dataframe.
 
         Returns:
-            type(equal to the type of the called on Dataframe): The copy instance of the Dataframe.
+            type(equal to the type of the called on Dataframe // (sub)class of BaseDataframe): The copy instance of the Dataframe.
         """
 
         # Create the new instance
@@ -167,14 +168,15 @@ class BaseDataframe:
         
         # If the original was already cleaned, then the status of new df should also be True, else it will be False.
         new_Dataframe.change_cleaned_status(
-            self.get_cleaned_status()
+            self.status_cleaned
             )
         
         return new_Dataframe
 
     ### READING/WRITING DATA FROM/TO EXCEL
     def read_Dataframe_fromExcel(self):
-        """Read the dataframe from excel, if indicated in df declaration that it is needed (bool_read_df). First validates whether the name of the excelsheet can be found.
+        """Read the dataframe from excel, if indicated in df declaration that it is needed (bool_read_df). 
+        \n Validates whether the name of the excelsheet can be found.
 
         Raises:
             ValueError: Dataframe does not have a value for {name_ExcelSheet}.
@@ -189,9 +191,10 @@ class BaseDataframe:
                 engine='openpyxl'
             ).fillna(self.fillna_value)
 
-
+    #FIXME: Create VBA file that communicates with python to indicate whether a file is opened by the user, then the dataframe will not be written to excel until the file is closed. otherwise there will be alot of corrupt files.
     def write_Dataframe_toExcel(self):
-        """Write the dataframe to excel. First validates whether the name of the excelsheet can be found.
+        """Write the dataframe to excel. 
+        \n Validates whether the name of the excelsheet can be found.
 
         Raises:
             ValueError: Dataframe does not have a value for {name_ExcelSheet}.
@@ -257,7 +260,6 @@ class BaseDataframe:
 
 class OrderDataframe(BaseDataframe):
     """The ordersDataframe is a class that is used to describe the ordersDF.
-    Subclass of the BaseDataframe
 
     Subclass of:
         BaseDataframe: Basic description of Dataframes.
@@ -267,33 +269,32 @@ class OrderDataframe(BaseDataframe):
             pandas_ExcelFile: pd.ExcelFile, 
             name_Dataframe: str, 
             name_ExcelSheet: str = None, 
-            bool_read_df: bool = True
+            bool_read_df: bool = True, 
+            fillna_value = None
             ) -> None:
         
         super().__init__(
             pandas_ExcelFile, 
             name_Dataframe, 
             name_ExcelSheet, 
-            bool_read_df
+            bool_read_df,
+            fillna_value
             )
 
     ### SUBCLASS SPECIFIC FUNCTIONS
     def clean(self):
         """Cleans the orders dataframe by changing all strings to uppercase and otherwise returning the element for the columns that need to be cleaned.
-        """
-        """if isinstance(self.pandas_Dataframe.columns, pd.Index):
-            ic('RESET INDEX')
-            ic(self.pandas_Dataframe.index)
-            self.pandas_Dataframe = self.pandas_Dataframe.reset_index(drop=True)"""
 
-        if not self.status_cleaned: # If the dataframe has not yet been cleaned, clean it.
+        str -> uppercase
+        else -> element
+        """
+        # Check if the dataframe has not yet been cleaned, if so, clean it.
+        if not self.status_cleaned:
             self._change_index_to_firstCol()  
 
             # During cleaning the description column is excluded to preserve the format.
             columns_to_exclude_cleaning = ['Description']
             columns_to_clean = self.pandas_Dataframe.columns.drop(columns_to_exclude_cleaning)
-            
-            ic(2, self.pandas_Dataframe)
             
             # Clean individual column elements
             for col in columns_to_clean:
@@ -310,6 +311,7 @@ class OrderDataframe(BaseDataframe):
     ### HELPER FUNCTIONS
     def _clean_orderDF_elements(self, element):
         """This function cleans the actual elements of each column based on the datatype of the column.
+        \n
         String -> uppercase String
         Else -> No change
 
@@ -322,6 +324,7 @@ class OrderDataframe(BaseDataframe):
         if element:
             if pd.notna(element) and isinstance(element, str):
                 return element.upper()
+            
             elif pd.notna(element):
                 return element
     
@@ -329,7 +332,6 @@ class OrderDataframe(BaseDataframe):
 
 class IndexSetsDataframe(BaseDataframe):
     """The indexSetsDataframe is a class that is used to describe the IndexDF.
-    Subclass of the BaseDataframe
 
     Subclass of:
         BaseDataframe: Basic description of Dataframes.
@@ -339,14 +341,16 @@ class IndexSetsDataframe(BaseDataframe):
             pandas_ExcelFile: pd.ExcelFile, 
             name_Dataframe: str, 
             name_ExcelSheet: str = None, 
-            bool_read_df: bool = True
+            bool_read_df: bool = True,
+            fillna_value = None
             ) -> None:
         
         super().__init__(
             pandas_ExcelFile, 
             name_Dataframe, 
             name_ExcelSheet, 
-            bool_read_df
+            bool_read_df,
+            fillna_value
             )
 
     ### RETRIEVE SPECIFIC INDEX SETS
@@ -371,21 +375,28 @@ class IndexSetsDataframe(BaseDataframe):
     def get_employee_set(self):
         return self.pandas_Dataframe['Production_lines']
     
-        
     def clean(self):
         """Clean the indexDF by changing all strings to uppercase, timestamp is left as it is, floats are made to integer.
+
+        str -> uppercase
+        pd.timestamp -> element
+        float -> int
         """
         if not self.status_cleaned:
-            self.pandas_Dataframe = self.pandas_Dataframe.apply(
-                lambda x: self._clean_indexDF_elements(x)
-                )
+            for col in self.pandas_Dataframe.columns:
+                self.pandas_Dataframe[col] = self.pandas_Dataframe[col].apply(
+                    lambda x: self._clean_indexDF_elements(x)
+                    )
             
-            self.change_cleaned_status(True)
-        pass    
-    
+            self.change_cleaned_status(True)    
+
     ### HELPER FUNCTIONS
     def _clean_indexDF_elements(self, element):
         """This function cleans all the actual elements based on their datatype
+        \n
+        str -> uppercase
+        pd.Timestamp -> same
+        float -> int
 
         Args:
             element (_type_): elements of the indexDF
@@ -393,7 +404,7 @@ class IndexSetsDataframe(BaseDataframe):
         Returns:
             _type_: The cleaned element
         """
-        if element and pd.notna(element):
+        if element:
             if isinstance(element, str):
                 return element.upper()
             elif isinstance(element, pd.Timestamp):
@@ -407,7 +418,6 @@ class IndexSetsDataframe(BaseDataframe):
 
 class OldPlanningDataframe(BaseDataframe):
     """The oldPlanningDataframe is a class that is used to describe the oldPlanningDF.
-    Subclass of the BaseDataframe
 
     Subclass of:
         BaseDataframe: Basic description of Dataframes.
@@ -417,18 +427,24 @@ class OldPlanningDataframe(BaseDataframe):
             pandas_ExcelFile: pd.ExcelFile, 
             name_Dataframe: str, 
             name_ExcelSheet: str = None, 
-            bool_read_df: bool = True
+            bool_read_df: bool = True,
+            fillna_value = None
             ) -> None:
         
         super().__init__(
             pandas_ExcelFile, 
             name_Dataframe, 
             name_ExcelSheet, 
-            bool_read_df
+            bool_read_df,
+            fillna_value
             )
 
     def clean(self):
         """Clean the oldPlanningDF by changing all strings to uppercase, timestamp is left as it is, floats are made to integer.
+
+        str -> uppercase
+        pd.timestamp -> element
+        float -> int
         """
         if not self.pandas_Dataframe.empty and not self.status_cleaned:
             columns = self.pandas_Dataframe.columns.to_list()
@@ -436,6 +452,9 @@ class OldPlanningDataframe(BaseDataframe):
 
             self.pandas_Dataframe = self.pandas_Dataframe.set_index(index_columns)
             self.pandas_Dataframe.columns = ['allocation']
+
+            # Change format to pd.Series
+            self.pandas_Dataframe = self.pandas_Dataframe.iloc[:, 0]
 
             # Drop rows with value 0.0
             self.pandas_Dataframe = self.pandas_Dataframe[self.pandas_Dataframe != 0.0]
@@ -445,7 +464,6 @@ class OldPlanningDataframe(BaseDataframe):
 
 class ManualPlanningDataframe(BaseDataframe):
     """The oldPlanningDataframe is a class that is used to describe the oldPlanningDF.
-    Subclass of the BaseDataframe
 
     Subclass of:
         BaseDataframe: Basic description of Dataframes.
@@ -455,45 +473,47 @@ class ManualPlanningDataframe(BaseDataframe):
             pandas_ExcelFile: pd.ExcelFile, 
             name_Dataframe: str, 
             name_ExcelSheet: str = None, 
-            bool_read_df: bool = True
+            bool_read_df: bool = True,
+            fillna_value = None
             ) -> None:
         
         super().__init__(
             pandas_ExcelFile, 
             name_Dataframe, 
             name_ExcelSheet, 
-            bool_read_df
+            bool_read_df,
+            fillna_value
             )
-    
-    """def read_Dataframe_fromExcel(self):
-        self.validate_name_ExcelSheet()
-
-        self.pandas_Dataframe = pd.read_excel(
-            io=self.pandas_ExcelFile.io,
-            sheet_name=self.name_ExcelSheet,
-            engine='openpyxl',
-            index_col=[0, 1]
-        ).fillna(self.type_fillna)"""
-        
 
     def clean(self):
         """Clean the manualPlanningDataframe by changing all strings to uppercase, timestamp is left as it is, floats are made to integer.
+
+        str -> uppercase
+        pd.timestamp -> element
+        float -> int
         """
         if not self.pandas_Dataframe.empty and not self.status_cleaned:
-            index_columns = self.pandas_Dataframe.columns.to_list()[:1]
+            # Change index to first two columns. (order_suborder, empl_line)
+            index_columns = self.pandas_Dataframe.columns.to_list()[:2]
             self.pandas_Dataframe = self.pandas_Dataframe.set_index(index_columns)
-
+            
+            # Rename the datestamp columns to 'time'
             self.pandas_Dataframe = self.pandas_Dataframe.rename_axis('time', axis=1)
-
+            
+            # Stack columns to get a pd.Series and rename the index.
             self.pandas_Dataframe = self.pandas_Dataframe.stack()
             self.pandas_Dataframe.name = 'allocation'
-            
-            # Drop rows with value 0.0
-            self.pandas_Dataframe = self.pandas_Dataframe[self.pandas_Dataframe != 0.0]
 
+            # Reorder the index
             self.pandas_Dataframe = self.pandas_Dataframe.reorder_levels(
                 ['order_suborder','time', 'empl_line']
                 )
+
+            # Replace Empty values ('') to 0.0
+            self.pandas_Dataframe = self.pandas_Dataframe.replace('', 0.0)
+            
+            # Drop rows with value 0.0
+            self.pandas_Dataframe = self.pandas_Dataframe[self.pandas_Dataframe != 0.0]
             
             self.change_cleaned_status(True)
 
@@ -504,13 +524,15 @@ class AvailabilityDataframe(BaseDataframe):
             pandas_ExcelFile: pd.ExcelFile, 
             name_Dataframe: str, 
             name_ExcelSheet: str = None, 
-            bool_read_df: bool = True
+            bool_read_df: bool = True, 
+            fillna_value = None
             ) -> None:
         super().__init__(
             pandas_ExcelFile, 
             name_Dataframe, 
             name_ExcelSheet, 
-            bool_read_df
+            bool_read_df,
+            fillna_value
             )
     
     def clean(self):
@@ -518,6 +540,9 @@ class AvailabilityDataframe(BaseDataframe):
             self._change_index_to_firstCol()
 
             self.change_cleaned_status(True)
+
+    def build(self):
+        pass
 
 
 
@@ -527,13 +552,15 @@ class SkillDataframe(BaseDataframe):
             pandas_ExcelFile: pd.ExcelFile, 
             name_Dataframe: str, 
             name_ExcelSheet: str = None, 
-            bool_read_df: bool = True
+            bool_read_df: bool = True,
+            fillna_value = None
             ) -> None:
         super().__init__(
             pandas_ExcelFile, 
             name_Dataframe, 
             name_ExcelSheet, 
-            bool_read_df
+            bool_read_df,
+            fillna_value
             )
     
     def clean(self):
@@ -541,6 +568,35 @@ class SkillDataframe(BaseDataframe):
             self._change_index_to_firstCol()
 
             self.change_cleaned_status(True)
+
+    def build(self):
+        pass
+
+
+class CombinedPlanningDataframe(BaseDataframe):
+    def __init__(
+            self, 
+            pandas_ExcelFile: pd.ExcelFile, 
+            name_Dataframe: str, 
+            name_ExcelSheet: str = None, 
+            bool_read_df: bool = True, 
+            bool_build_df: bool = False, 
+            fillna_value=None
+            ) -> None:
+        super().__init__(
+            pandas_ExcelFile, 
+            name_Dataframe, 
+            name_ExcelSheet, 
+            bool_read_df, 
+            bool_build_df, 
+            fillna_value
+            )
+    
+    def clean(self):
+        pass
+
+    def build(self):
+        pass
     
 
 
