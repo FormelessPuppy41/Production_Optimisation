@@ -1,11 +1,13 @@
+from __future__ import annotations 
+# Used in building dataframes, since the ManagerDataframes is located at the end of the file. 
+# Subsequent of all DF's that are build and need a ManagerDataframe as input
+
 import pandas as pd
 import openpyxl
 from icecream import ic
 from typing import Union
 
 
-#TODO: Fix all fixme's and todo's and documentation before continueing to building new dataframes.
-# Then test whether this below works using test_data.py.
 class BaseDataframe:
     """_summary_
     """
@@ -536,13 +538,12 @@ class AvailabilityDataframe(BaseDataframe):
             )
     
     def clean(self):
+        """Cleans the AvailabilityDataframe, that is change index to the first column.
+        """
         if not self.status_cleaned:
             self._change_index_to_firstCol()
 
             self.change_cleaned_status(True)
-
-    def build(self):
-        pass
 
 
 
@@ -564,13 +565,13 @@ class SkillDataframe(BaseDataframe):
             )
     
     def clean(self):
+        """Cleans the skillDataframe, that is change index to the first column.
+        """
         if not self.status_cleaned:
             self._change_index_to_firstCol()
 
             self.change_cleaned_status(True)
 
-    def build(self):
-        pass
 
 
 class CombinedPlanningDataframe(BaseDataframe):
@@ -593,9 +594,151 @@ class CombinedPlanningDataframe(BaseDataframe):
             )
     
     def clean(self):
+        """Does nothing since dataframe is not read and not cleaned, but build using clean dataframes.
+        """
         pass
 
-    def build(self):
+    def build(self, managerDF: ManagerDataframes):
+        """Build the pandas dataframe of CombinedPlanningDF, which shows all manually scheduled allocations and the OldPlanning allocations that adhere to the datelimit condition. That condition indicates that only previous allocations are copied if they are before the limit_OldPlanning timestamp.
+
+        Args:
+            managerDF (ManagerDataframes): Manager containing the 'OldPlanningDF' and 'ManualPlanningDF', they should be cleaned.
+        
+        """
+        oldPlanningDF: pd.DataFrame
+        manualPlanningDF: pd.DataFrame
+
+        # Validate whether the dataframes are actually in the ManagerDataframes.
+        oldPlanningDF, manualPlanningDF = self._validate_presence_old_manual_planning(managerDF=managerDF)
+        
+        combinedPlanningDF: pd.DataFrame = pd.DataFrame()
+
+        # Get the oldPlanningDF that satisfies the condition. That is, is allocated before limit_oldPlanning
+        oldPlanningDF = self._apply_oldPlanning_condition(oldPlanningDF=oldPlanningDF)
+
+        ### CONDITIONS FOR COMBINEDPLANNINGDF
+
+        # If both plannings are empty, return empty df.
+        if manualPlanningDF.empty and oldPlanningDF.empty:
+            return combinedPlanningDF
+
+        elif manualPlanningDF.empty:
+            combinedPlanningDF = oldPlanningDF
+        
+        elif oldPlanningDF.empty:
+            combinedPlanningDF = manualPlanningDF
+
+         # If both plannings are not empty, return the concatenated result, including both
+        else: 
+            index_names_oldDF = oldPlanningDF.index.names
+            # Join both dataframes using set theory: (A U B), so in either A or B.
+            combinedPlanningDF = pd.concat(
+                [manualPlanningDF, oldPlanningDF], 
+                join='outer'
+                ) 
+
+            # Remove duplicates if combination is in both plannings.
+            combinedPlanningDF = combinedPlanningDF.reset_index().drop_duplicates(
+                subset=list(index_names_oldDF), 
+                keep='first'
+                ).set_index(index_names_oldDF) # drop_duplicates is column based, so reset index.
+        
+        self.pandas_Dataframe = combinedPlanningDF
+
+    # HELPER FUNCTIONS
+    def _validate_presence_old_manual_planning(self, managerDF: ManagerDataframes) -> list[pd.DataFrame]:
+        """Checks whether the OldPlanningDf and ManualPlanningDF are present within the ManagerDataframes. 
+        Does not check for None values because the dataframes are being read, so are either an empty dataframe/series or are non empty. Eitherway they will be evaluated after the presence is checked.
+
+        Args:
+            managerDF (ManagerDataframes): Manager of the Dataframes.
+
+        Raises:
+            AttributeError: If either the OldPlanningDF or ManualPlanningDF Attribute cannot be found within the ManagerDataframe instance.
+
+        Returns:
+            [pd.DataFrame, pd.DataFrame]: OldPlanningDF, ManualPlanningDF
+        """
+        try: 
+            oldPlanningDF = managerDF.get_Dataframe('OldPlanningDF').get_pandas_Dataframe()
+            manualPlanningDF = managerDF.get_Dataframe('ManualPlanningDF').get_pandas_Dataframe()
+            # TODO: add statuscleaned check and clean if necessary?
+            return oldPlanningDF, manualPlanningDF
+        except:
+            raise AttributeError(
+                f"Dataframes could not be found within the given ManagerDataframes instance '{managerDF}', for the 'OldPlanningDF' and 'ManualPlanningDF' dataframes. \n Possible cause could be the calling CombinedPlanningDF.build() before having read the PlanningDFs."
+            )
+    
+    def _apply_oldPlanning_condition(self, oldPlanningDF: pd.DataFrame) -> pd.DataFrame:
+        """Applies the oldPlanning condition, where only allocations before the limit_OldPlanning are considered. 
+
+        Args:
+            oldPlanningDF (pd.DataFrame): OldPlanningDF that shows all the previous allocations.
+
+        Returns:
+            pd.DataFrame: OldPlanningDF with only allocations satisfying the condition.
+        """
+        
+        # Obtain limit_oldPlanning
+        limit_OldPlanning = self._get_formatted_limit_OldPlanning()
+
+        if not oldPlanningDF.empty:
+
+            # Reset index for enabling conditioning on 'time' index/column
+            index_names_oldDF = oldPlanningDF.index.names
+            oldPlanningDF = oldPlanningDF.reset_index() 
+
+            # Only keep old allocations that happen before the 'limit_oldPlanning' value.
+            condition_oldDF = (oldPlanningDF['time'] <= pd.to_datetime(limit_OldPlanning))
+            
+            # Only keep rows that satisfy the condition
+            oldPlanningDF = oldPlanningDF[condition_oldDF]
+            
+            # Reformat to Series with correct index.
+            oldPlanningDF = oldPlanningDF.set_index(index_names_oldDF)['allocation']
+
+        return oldPlanningDF
+    
+    def _get_formatted_limit_OldPlanning(self) -> pd.Timestamp:
+        """Get the limit_OldPlanning, that indicates until which point in time the OldPlannigDF is to be followed. 
+        Is returned in "%Y-%m-%d %H:%M:%S" format.
+
+        Returns:
+            pd.Timestamp: limit_OldPlanning value, that indicates until when OldPlanningDF will be adhered.
+        """
+        from dateutil import parser
+
+        #TODO: Relocate to new general_Config file. and import here
+        # Until which point should the old planning be used. Also, format is important, see the format in the oldplanning constraint.
+        limit_oldPlanning = '21-08-2023 14:00:00' 
+
+        # Reformat by parsing into subparts and changing format.
+        parsed_datetime = parser.parse(limit_oldPlanning)
+        limit_oldPlanning = parsed_datetime.strftime("%Y-%m-%d %H:%M:%S")
+        
+        return limit_oldPlanning
+    
+
+
+class PenaltyDataframe(BaseDataframe):
+    def __init__(
+            self, pandas_ExcelFile: pd.ExcelFile, 
+            name_Dataframe: str, 
+            name_ExcelSheet: str = None, 
+            bool_read_df: bool = True, 
+            bool_build_df: bool = False, 
+            fillna_value=None
+            ) -> None:
+        super().__init__(
+            pandas_ExcelFile, 
+            name_Dataframe, 
+            name_ExcelSheet, 
+            bool_read_df, 
+            bool_build_df, 
+            fillna_value
+            )
+    
+    def build():
         pass
     
 

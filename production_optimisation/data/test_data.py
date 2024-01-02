@@ -9,7 +9,8 @@ from data import (
     ManualPlanningDataframe, 
     AvailabilityDataframe, 
     SkillDataframe, 
-    ManagerDataframes
+    ManagerDataframes, 
+    CombinedPlanningDataframe
     )
 #TODO: Add main() in parts to data.py
 # dfs in beginning file or import from gen.config
@@ -24,28 +25,28 @@ def main():
         # >>>>      Build DF: bool #FIXME: Is this necessary, since each build is defined for each class already.
         # >>>>      Read Fillna_Value: any #FIXME: Could fillna_value be removed from all constructors, and replaced with a chance method if it is needed for a df?
         # >>>> ],
-        'baseDF': [
+        'BaseDF': [
             None, 
             BaseDataframe,
             False,
             False,
             None
             ], 
-        'orderDF': [
+        'OrderDF': [
             'Orders_dataframe', 
             OrderDataframe,
             True,
             False,
             ''
             ], 
-        'indexDF': [
+        'IndexDF': [
             'Index_sets_dataframe', 
             IndexSetsDataframe,
             True,
             False,
             ''
             ],
-        'oldPlanningDF': [
+        'OldPlanningDF': [
             'Planning', 
             OldPlanningDataframe,
             True,
@@ -58,6 +59,27 @@ def main():
             True,
             False,
             0.0
+            ], 
+        'AvailabilityDF': [
+            'Config_availability',
+            AvailabilityDataframe,
+            True,
+            False,
+            0.0
+            ],
+        'SkillDF': [
+            'Config_skills', 
+            SkillDataframe,
+            True,
+            False,
+            0.0
+            ], 
+        'CombinedPlanningDF': [
+            None,
+            CombinedPlanningDataframe,
+            False,
+            True,
+            None,
             ]
     }        
 
@@ -66,11 +88,13 @@ def main():
         engine='openpyxl'
         )
 
-    dfManager = ManagerDataframes()
+    managerDF = ManagerDataframes()
 
     for name, config in dfs.items():
         sheet_name, class_name, bool_read_df, bool_build_df, fillna_value = config
         
+        ic(name)
+
         df_instance: BaseDataframe = class_name(
             pandas_ExcelFile =excelFile,
             name_Dataframe=name,
@@ -82,13 +106,15 @@ def main():
         df_instance.read_Dataframe_fromExcel()
         
         df_instance.clean()
+        if bool_build_df:
+            df_instance.build(managerDF=managerDF)
         
         ic(df_instance.pandas_Dataframe)
         
-        dfManager.store_Dataframe(df_instance)
+        managerDF.store_Dataframe(df_instance)
 
     # Perform some checks with using retrieving methods from dataframes. If those work, then continue to implementing build() for different df's.
-    df = dfManager.get_Dataframe('baseDF')
+    df = managerDF.get_Dataframe('BaseDF')
     ic(df.bool_read_df)
 
 if __name__ == '__main__':
