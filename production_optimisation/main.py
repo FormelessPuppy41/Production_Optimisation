@@ -32,6 +32,28 @@ def read():
 
     return excel_file
 
+def main():
+    """
+    Read the data, process it and solve the mathematical model.
+    """
+    # Read the excel file
+    excel_file = read()
+
+    ### PROCESSING THE DATA.
+    # CREATE A DATA PROCESS
+    process = Data_process(excel_file) # add a way to check whether the data has changed in excel => store the data in database => no need to reread every time.
+    # READ THE HELPER SHEET OF THE EXCELFILE, THAT INDICATES WHICH SHEETS TO READ AND WHAT TYPE OF SHEET THEY ARE
+    process.process_helper_read_sheets('helper_read_sheets')
+    # READ ALL THE NECESARRY SHEETS BASED ON THEIR SHEET TYPE
+    process.process_read_dataframes()
+    # USING THE READ DATA, BUILD NEEDED DATAFRAMES
+    process.process_build_dataframes()
+    # CLOSE THE EXCELFILE
+    excel_file.close()
+
+    # Create, test and solve the problem.
+    problem(process)
+
 def problem(dataProcess: Data_process):
     """Formulate the mathematical model
 
@@ -56,6 +78,8 @@ def problem(dataProcess: Data_process):
     # EXPORT THE MODEL TO THE EXCELFILE
     #ewOpt.export() # DO NOT EXPORT BEFORE BACKING UP THE EXCEL FILE
 
+    solution(ewOptimalisatie=ewOpt, dataProcess=dataProcess)
+
 def solution(ewOptimalisatie: EWOptimisation, dataProcess: Data_process):
     """Transform the solution into a ganttchart.
 
@@ -73,28 +97,6 @@ def solution(ewOptimalisatie: EWOptimisation, dataProcess: Data_process):
     gantt_chart.create_ganttchart()
     # SHOW THE GANTTCHART
     gantt_chart.show_plt()
-
-def main():
-    """
-    Read the data, process it and solve the mathematical model.
-    """
-    # Read the excel file
-    excel_file = read()
-
-    ### PROCESSING THE DATA.
-    # CREATE A DATA PROCESS
-    process = Data_process(excel_file) # add a way to check whether the data has changed in excel => store the data in database => no need to reread every time.
-    # READ THE HELPER SHEET OF THE EXCELFILE, THAT INDICATES WHICH SHEETS TO READ AND WHAT TYPE OF SHEET THEY ARE
-    process.process_helper_read_sheets('helper_read_sheets')
-    # READ ALL THE NECESARRY SHEETS BASED ON THEIR SHEET TYPE
-    process.process_read_dataframes()
-    # USING THE READ DATA, BUILD NEEDED DATAFRAMES
-    process.process_build_dataframes()
-    # CLOSE THE EXCELFILE
-    excel_file.close()
-
-    # Create, test and solve the problem.
-    problem(process)
 
 if __name__ == "__main__":
     main()

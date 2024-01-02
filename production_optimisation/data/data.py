@@ -3,6 +3,7 @@ from __future__ import annotations
 # Subsequent of all DF's that are build and need a ManagerDataframe as input
 
 import pandas as pd
+import numpy as np
 import openpyxl
 from icecream import ic
 from typing import Union
@@ -137,12 +138,13 @@ class BaseDataframe:
         """Empty clean function, since cleaning method depends on the Dataframe type. \n Specify the subclass in order to clean it.
         """
         pass
-
+    
+    ### BUILDING FUNCTIONS
     def build(self):
         """Empty build function, since building method depends on the Dataframe type. \n Specify the subclass in order to build it.
         """
         pass
-
+    
     def copy_to_new_Dataframe(
             self, 
             name_new_Dataframe: str
@@ -573,6 +575,7 @@ class SkillDataframe(BaseDataframe):
             self.change_cleaned_status(True)
 
 
+### DATAFRAMES THAT ARE BUILD
 
 class CombinedPlanningDataframe(BaseDataframe):
     def __init__(
@@ -646,6 +649,7 @@ class CombinedPlanningDataframe(BaseDataframe):
         self.pandas_Dataframe = combinedPlanningDF
 
     # HELPER FUNCTIONS
+    #FIXME: Change this to new validate function in ManagerDataframes.
     def _validate_presence_old_manual_planning(self, managerDF: ManagerDataframes) -> list[pd.DataFrame]:
         """Checks whether the OldPlanningDf and ManualPlanningDF are present within the ManagerDataframes. 
         Does not check for None values because the dataframes are being read, so are either an empty dataframe/series or are non empty. Eitherway they will be evaluated after the presence is checked.
@@ -719,7 +723,7 @@ class CombinedPlanningDataframe(BaseDataframe):
         return limit_oldPlanning
     
 
-
+#FIXME: Complete
 class PenaltyDataframe(BaseDataframe):
     def __init__(
             self, pandas_ExcelFile: pd.ExcelFile, 
@@ -743,54 +747,267 @@ class PenaltyDataframe(BaseDataframe):
     
 
 
+#FIXME: check correctness.
+class IndicatorBuildDataframe(BaseDataframe):
+    def __init__(
+            self, 
+            pandas_ExcelFile: pd.ExcelFile, 
+            name_Dataframe: str, 
+            name_ExcelSheet: str = None, 
+            bool_read_df: bool = True, 
+            bool_build_df: bool = False, 
+            fillna_value=None
+            ) -> None:
+        super().__init__(
+            pandas_ExcelFile, 
+            name_Dataframe, 
+            name_ExcelSheet, 
+            bool_read_df, 
+            bool_build_df, 
+            fillna_value
+            )
+    
+    def indicatorBuilder(
+            self, 
+            managerDF: ManagerDataframes,  
+            keepCols: list[str]
+            ):
+        
+        managerDF.validate_presence_Dataframe(
+            dfs_to_check = 'OrderDF', 
+            check_pandasDF_presence = True, 
+            check_clean_status = True
+            )
+
+        orderDF = managerDF.get_Dataframe('OrderDF').get_pandas_Dataframe().copy()
+        
+        # Get columns to drop.
+        drop_cols = [
+            col 
+            for col in orderDF.columns 
+            if col not in keepCols
+            ]
+        
+        newDF = orderDF.drop(columns=drop_cols)
+
+        # Make Indicator:
+        indicator = np.where(
+            newDF.iloc[0] == 1 
+            or newDF.iloc[0] == True, 
+            [True, False]
+            )
+        
+        newDF = pd.DataFrame(
+            indicator, 
+            index=newDF.index
+            )
+        
+        self.pandas_Dataframe = newDF
+    
+
 class ManagerDataframes:
     """This class is used to store different dataframes. It can then be used to fetch or remove certain dataframes based on their name.
     """
     def __init__(self) -> None:
         self.stored_Dataframes = {}
 
+    #FIXME: Add documentation and change to union[list[str], str]
     def store_Dataframe(
             self,
             dataframe_to_store: BaseDataframe = None
-        ):
+        ): 
         if dataframe_to_store:
             name_df = dataframe_to_store.name_Dataframe
             self.stored_Dataframes[name_df] = dataframe_to_store
+        
         else:
             print(f'Dataframe has not been stored since given dataframe_to_store ({dataframe_to_store}) is empty')
             pass
 
     def remove_Dataframe(
             self, 
-            name_Dataframe: str
+            dfs_to_remove: Union[list[str], str]
         ):
         """Remove a dataframe in the dictionary.
 
         Args:
-            dataframe_to_delete (BaseDataframe): Dataframe to store (Can also be subclass of BaseDataframe)
+            dfs_to_remove (Union[list[str], str]): Dataframe(s) to remove (Can also be subclass of BaseDataframe)
         """
-        # Check if the DataFrame exists in the dictionary
-        if name_Dataframe in self.store_Dataframe:
-            # Remove the DataFrame
-            del self.stored_Dataframes[name_Dataframe]
-        else:
-            raise KeyError(f"DataFrame with name '{name_Dataframe}' not found in the dictionary.")
+        if isinstance(dfs_to_remove, str):
+            self.remove_Dataframe(dfs_to_check=[dfs_to_remove])
         
+        # Check if the DataFrame exists in the dictionary
+        self.validate_presence_Dataframe(dfs_to_check=dfs_to_remove)
+        
+        # Remove the DataFrame
+        for df in dfs_to_remove:
+            del self.stored_Dataframes[df]
+    
+    #FIXME: Don't know if making it union and return list works, because now .get.pandasdf() does not look like it works, how to fix.
     def get_Dataframe(
             self, 
-            name_Dataframe: str
-        ) -> BaseDataframe:
+            dfs_to_get: Union[list[str], str]
+        ) -> list(BaseDataframe):
+        """Retrieves dataframe if it is present, if not raises a value error.
+
+        Args:
+            dfs_to_get (Union[list[str], str]): df_name(s) to retrieve.
+
+        Returns:
+            list(BaseDataframe): Asked for BaseDataframe(s) (subclass)
+        """
+        if isinstance(dfs_to_get, str):
+            self.get_Dataframe(dfs_to_get=[dfs_to_get])
+
+        self.validate_presence_Dataframe(name_Dataframe=dfs_to_get)    
+        
+        dfs = []
+        for df in dfs_to_get:
+            dfs.append(df)
+
+        return dfs
+    
+    #FIXME: Check me
+    def validate_presence_Dataframe(
+            self, 
+            dfs_to_check: Union[
+                list(str), 
+                str
+                ] = None, 
+            check_clean_status: bool = False, 
+            check_pandasDF_presence: bool = False, 
+            check_NoneValues: bool = False
+            ):
+        """Checks whether the asked dataframe(s) is/are present within the ManagerDataframes. 
+
+        Does not check for None values because the dataframes are being read, so are either an empty dataframe/series or are non empty. Eitherway they will be evaluated after the presence is checked.
+
+        Args:
+            managerDF (ManagerDataframes): Manager of the Dataframes.
+
+        Raises:
+            AttributeError: If one of the dataframes to check cannot be found within the ManagerDataframes instance.
+
+        """
+        # Create errors savers
+        errors = {}
+        correct = {}
+
+        # Create suberror savers
+        absent_dfs = []
+        found_dfs = []
+
+        absent_pd_dfs = []
+        found_pd_dfs = []
+
+        uncleaned_dfs = []
+        cleaned_dfs = []
+
+        noneValues_dfs = []
+        values_dfs = []
+        
+        if isinstance(dfs_to_check, str):
+            self.validate_presence_Dataframe(
+                dfs_to_check=[dfs_to_check], 
+                check_clean_status=check_clean_status, 
+                check_pandasDF_presence=check_pandasDF_presence
+                )
+
+        else:
+            for name_df in dfs_to_check:
+                try:
+                    # Try retrieving, storing not necessary.
+                    self._check_name_in_StoredDataframes(name_Dataframe=name_df)
+                    found_dfs.append(name_df)
+                
+                except Exception as e:
+                    absent_dfs.append(name_df)
+                    errors[f"Absent Dataframe, {name_df}:"] = e
+            
+            #errors['Absent Dataframes'] = absent_dfs
+            correct['Found Dataframes'] = found_dfs
+            
+            if check_pandasDF_presence:
+                for name_df in found_dfs:
+                    try:
+                        pd_df = self.get_Dataframe(name_Dataframe=name_df).get_pandas_Dataframe()
+                        found_pd_dfs.append(name_df)
+
+                        # If pandas values need to be checked on NoneValues
+                        if check_NoneValues:
+                            if pd_df:
+                                values_dfs.append(name_df)
+                            else:
+                                noneValues_dfs.append(name_df)
+                            
+                    except Exception as e:
+                        absent_pd_dfs.append(name_df)
+                        errors[f"Absent PANDAS Dataframe, {name_df}:"] = e
+
+                #errors['Absent PANDAS Dataframes'] = absent_pd_dfs
+                correct['Found PANDAS Dataframes'] = found_dfs
+
+                if check_NoneValues:
+                    errors['None Valued PANDAS Dataframes'] = noneValues_dfs
+                    correct['Valued PANDAS Dataframes'] = values_dfs
+
+            if check_clean_status:
+                for name_df in found_dfs:
+                    if self.get_Dataframe(name_Dataframe=name_df).status_cleaned:
+                        cleaned_dfs.append(name_df)
+                    
+                    else:
+                        uncleaned_dfs.append(name_df)
+                
+                errors['Uncleaned Dataframes'] = uncleaned_dfs
+                correct['Cleaned Dataframes'] = cleaned_dfs
+
+            if errors:
+                raise AttributeError(
+                    f" \
+                    While validating the presence of (a) dataframe(s) one or more errors have occured: 
+                    \n {', '.join(f'{key}: {str(value)}' for key, value in errors.items())} \
+                    \n \
+                    The following things went as expected: \
+                    \n {correct}
+                    "
+                )
+        
+    ### HELPER FUNCTIONS
+    def _check_name_in_StoredDataframes(self, name_Dataframe: str):
+        """Checks whether a name is in the stored dataframes, if not it raises an error and suggests all possible names, but also indicates if there is a name with the same spelling but with different cases, like name and naMe. 
+
+        Args:
+            name_Dataframe (str): df_name to check
+
+        Raises:
+            ValueError: If the name cannot be found, suggests other names.
+        """
         if name_Dataframe in self.stored_Dataframes:
-            return self.stored_Dataframes[name_Dataframe]
+            pass
         
         else:
             suggested_similar_names =  self._suggest_names_similar(name=name_Dataframe)
-            suggested_all_names = self._suggest_names_all(name=name_Dataframe)
+            suggested_all_names = self._suggest_names_all()
             raise ValueError(f"The given name '{name_Dataframe}' cannot be found in the stored names. \n Did you mean one of these: {', '.join(suggested_similar_names)}? \n If not, select one of the saved names: {', '.join(suggested_all_names)}")
     
-    ### HELPER FUNCTIONS
     def _suggest_names_similar(self, name: str):
+        """Gives the name suggestion for names that have the same letters, but different cases. 
+        \n e.g. It would return 'name', if 'name' is a stored df_name, for ['Name', 'nAme', 'NAME', etc.]
+
+        Args:
+            name (str): Name to check
+
+        Returns:
+            list[str]: stored df_names with same spelling but different cases.
+        """
         return [df_name for df_name in self.stored_Dataframes if name.lower() in df_name.lower()]
     
-    def _suggest_names_all(self, name: str):
+    def _suggest_names_all(self):
+        """Gives the name suggestions out of all the names of stored dataframes.
+
+        Returns:
+            list[str]: names of stored dataframes.
+        """
         return [df_name for df_name in self.stored_Dataframes]
+    

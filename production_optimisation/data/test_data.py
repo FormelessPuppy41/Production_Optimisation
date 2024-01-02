@@ -82,7 +82,7 @@ def main():
             None,
             ]
     }        
-
+    # dfs_to_build_columnBased -> based on ordersDF, make subclass of basedataframe: 'orderssubclass ofz' and then for all in 'dfs_to_build_columnBased' a subclass of that classs.
     excelFile = pd.ExcelFile(
         "/Users/gebruiker/Documents/GitHub/Production_Optimisation/production_optimisation/EW_Optimisation.xlsm", 
         engine='openpyxl'
