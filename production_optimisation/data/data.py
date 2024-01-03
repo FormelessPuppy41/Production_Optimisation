@@ -5,12 +5,22 @@ from __future__ import annotations
 import pandas as pd
 import numpy as np
 import openpyxl
+
 from icecream import ic
-from typing import Union, List
+from typing import Union
+from dataclasses import dataclass
+
+@dataclass
+class BaseDataframeConfig:
+    name_excel_sheet: str
+    class_type: type(BaseDataframe)
+    read_sheet: bool = True
+    build_df: bool = False
+    read_fillna_value: Union[None, any] = None
 
 
 class BaseDataframe:
-    """_summary_
+    """The basic methods and attributes for a Dataframe. They are further specified in their own subclass.
     """
     def __init__(
             self, 
@@ -609,7 +619,7 @@ class CombinedPlanningDataframe(BaseDataframe):
         
         """
         oldPlanningDF, manualPlanningDF = managerDF.get_Dataframe(
-            dfs_to_get=['OldPlanningDF', 'ManualPlanningDF']
+            dfs_to_get=['OldPlanningDF', 'manualPlanningDF']
             )
 
         combinedPlanningDF: pd.DataFrame = pd.DataFrame()
@@ -751,7 +761,7 @@ class IndicatorBuildDataframe(BaseDataframe):
             keepCols: list[str]
             ):
         
-        managerDF.validate_presence_Dataframe(
+        managerDF._validate_presence_Dataframe(
             dfs_to_check = 'OrderDF', 
             check_pandasDF_presence = True, 
             check_clean_status = True
@@ -888,43 +898,44 @@ class ManagerDataframes:
                 str
                 ] = None, 
             check_clean_status: bool = False, 
-            check_pandasDF_presence: bool = False, 
-            check_NoneValues: bool = False
+            check_pandasDF_presence: bool = False
             ):
-        """Checks whether the asked dataframe(s) is/are present within the ManagerDataframes. 
+        """
+        Checks whether the asked dataframe(s) is/are present within the ManagerDataframes. 
 
         Does not check for None values because the dataframes are being read, so are either an empty dataframe/series or are non empty. Eitherway they will be evaluated after the presence is checked.
+        
 
         Args:
-            managerDF (ManagerDataframes): Manager of the Dataframes.
+            dfs_to_check (Union[ list[str], str ], optional): _description_. Defaults to None.
+            check_clean_status (bool, optional): _description_. Defaults to False.
+            check_pandasDF_presence (bool, optional): _description_. Defaults to False.
 
         Raises:
             AttributeError: If one of the dataframes to check cannot be found within the ManagerDataframes instance.
-
+            AttributeError: _description_
         """
         errors = {}
         correct = {}
+        incorrect = {}
 
         # Create suberror savers
         absent_dfs = []
         found_dfs = []
 
         found_pd_dfs = []
+        absent_pd_dfs = []
 
         cleaned_dfs = []
+        uncleaned_dfs = []
 
-        noneValues_dfs = []
-        values_dfs = []
-
-        def handle_exception(name_df, key, e):
+        def __handle_exception(name_df, key, e):
             absent_dfs.append(name_df)
             errors[f"{key}, {name_df}:"] = str(e)
 
-        def validate_single_dataframe(
+        def __validate_single_dataframe(
                 name_df, 
                 key, 
-                check_pandasDF_presence, 
-                check_NoneValues
                 ):
             try:
                 self._check_name_in_StoredDataframes(name_Dataframe=name_df)
@@ -933,127 +944,44 @@ class ManagerDataframes:
 
                 if check_pandasDF_presence:
                     pd_df = self.get_Dataframe(dfs_to_get=[name_df]).get_pandas_Dataframe()
-                    found_pd_dfs.append(name_df)
 
-                    if check_NoneValues:
-                        if pd_df.empty:
-                            noneValues_dfs.append(name_df)
-                        else:
-                            values_dfs.append(name_df)
+                    if pd_df.empty:
+                        absent_pd_dfs.append(name_df)
+                    
+                    else:
+                        found_pd_dfs.append(name_df)
 
                 if check_clean_status and self.get_Dataframe(dfs_to_get=name_df).status_cleaned:
                     cleaned_dfs.append(name_df)
+                elif check_clean_status:
+                    uncleaned_dfs.append(name_df)
 
             except KeyError as e:
-                handle_exception(name_df, key, e)
+                __handle_exception(name_df, key, e)
             except Exception as e:
-                handle_exception(name_df, key, e)
+                __handle_exception(name_df, key, e)
 
         if isinstance(dfs_to_check, str):
             dfs_to_check = [dfs_to_check]
 
         for name_df in dfs_to_check:
-            validate_single_dataframe(name_df, "Absent Dataframe", check_pandasDF_presence, check_NoneValues)
+            __validate_single_dataframe(name_df, "Absent Dataframe")
 
         # List the correctly executed dfs.
         correct['Found Dataframes'] = found_dfs
+        incorrect['Absent Dataframes'] = absent_dfs
         if check_pandasDF_presence:
             correct['Found PANDAS Dataframes'] = found_pd_dfs
+            incorrect['Empty PANDAS Dataframes'] = absent_pd_dfs
 
         if check_clean_status:
             correct['Cleaned Dataframes'] = cleaned_dfs
-        
-        if check_NoneValues:
-            correct['Valued PANDAS Dataframes'] = values_dfs
+            incorrect['Uncleaned Dataframes'] = uncleaned_dfs
 
         if errors:
             raise AttributeError(
-                f"While validating the presence of (a) dataframe(s), one or more errors have occurred: \n {', '.join(f'{key}: {value}' for key, value in errors.items())} \n The following things went as expected: \n {correct}"
+                f"While validating the presence of (a) dataframe(s), one or more errors have occurred: \n {', '.join(f'{key}: {value}' for key, value in errors.items())} \n\n The following things did not go as expected: \n{incorrect}. \n\n The following things did go as expected: \n {correct}"
             )
-        
-        """
-        # Create errors savers
-        errors = {}
-        correct = {}
-
-        # Create suberror savers
-        absent_dfs = []
-        found_dfs = []
-
-        absent_pd_dfs = []
-        found_pd_dfs = []
-
-        uncleaned_dfs = []
-        cleaned_dfs = []
-
-        noneValues_dfs = []
-        values_dfs = []
-        
-        if isinstance(dfs_to_check, str):
-            self.validate_presence_Dataframe(
-                dfs_to_check=[dfs_to_check], 
-                check_clean_status=check_clean_status, 
-                check_pandasDF_presence=check_pandasDF_presence
-                )
-
-        else:
-            for name_df in dfs_to_check:
-                try:
-                    # Try retrieving, storing not necessary.
-                    self._check_name_in_StoredDataframes(name_Dataframe=name_df)
-                    self.validated_dfs[name_df] = self.stored_Dataframes[name_df]
-                    
-                    found_dfs.append(name_df)
-                    
-                except Exception as e:
-                    absent_dfs.append(name_df)
-                    errors[f"Absent Dataframe, {name_df}:"] = e
-            
-            #errors['Absent Dataframes'] = absent_dfs
-            correct['Found Dataframes'] = found_dfs
-            
-            if check_pandasDF_presence:
-                for name_df in found_dfs:
-                    try:
-                        pd_df = self.get_Dataframe(dfs_to_get=[name_df]).get_pandas_Dataframe()
-                        found_pd_dfs.append(name_df)
-
-                        # If pandas values need to be checked on NoneValues
-                        if check_NoneValues:
-                            if pd_df:
-                                values_dfs.append(name_df)
-                            else:
-                                noneValues_dfs.append(name_df)
-                            
-                    except Exception as e:
-                        absent_pd_dfs.append(name_df)
-                        errors[f"Absent PANDAS Dataframe, {name_df}:"] = e
-
-                #errors['Absent PANDAS Dataframes'] = absent_pd_dfs
-                correct['Found PANDAS Dataframes'] = found_dfs
-
-                if check_NoneValues:
-                    errors['None Valued PANDAS Dataframes'] = noneValues_dfs
-                    correct['Valued PANDAS Dataframes'] = values_dfs
-
-            if check_clean_status:
-                for name_df in found_dfs:
-                    if self.get_Dataframe(dfs_to_get=name_df).status_cleaned:
-                        cleaned_dfs.append(name_df)
-                    
-                    else:
-                        uncleaned_dfs.append(name_df)
-                
-                if uncleaned_dfs:
-                    errors['Uncleaned Dataframes'] = uncleaned_dfs
-                
-                correct['Cleaned Dataframes'] = cleaned_dfs
-
-            if errors:
-                raise AttributeError(
-                    f"While validating the presence of (a) dataframe(s) one or more errors have occured: \n {', '.join(f'{key}: {str(value)}' for key, value in errors.items())} \n The following things went as expected: \n {correct}"
-                )
-        """
         
     def _check_name_in_StoredDataframes(self, name_Dataframe: str):
         """Checks whether a name is in the stored dataframes, if not it raises an error and suggests all possible names, but also indicates if there is a name with the same spelling but with different cases, like name and naMe. 
