@@ -12,7 +12,8 @@ from data import (
     AvailabilityDataframe, 
     SkillDataframe, 
     ManagerDataframes, 
-    CombinedPlanningDataframe
+    CombinedPlanningDataframe, 
+    ExecutedOnLineIndicatorDataframe
     )
 
 from dataclasses import dataclass
@@ -85,7 +86,11 @@ def main():
             read_sheet=False,
             build_df=True
             ),
-        '': ConfigBaseDataframe(
+        'ExecutedOnLineIndicatorDF': ConfigBaseDataframe(
+            class_type=ExecutedOnLineIndicatorDataframe,
+            read_sheet=False,
+            build_indicator_based=True,
+            build_keep_columns=['On_line', 'Production_line_specific_line']
 
             )
     }        
@@ -101,26 +106,40 @@ def main():
     for name, config in dfs.items():
         sheet_name = config.name_excel_sheet
         class_name = config.class_type
-        bool_read_df = config.read_sheet
+
+        bool_read_sheet = config.read_sheet
+        read_fillna_value = config.read_fillna_value
+
         bool_build_df = config.build_df
-        fillna_value = config.read_fillna_value
+        bool_build_column_based = config.build_column_based
+        bool_build_indicator_based = config.build_indicator_based
+        build_keep_columns = config.build_keep_columns
 
         ic(name)
 
         df_instance: type[BaseDataframe] = class_name(
-            pandas_ExcelFile =excelFile,
-            name_Dataframe=name,
-            name_ExcelSheet=sheet_name,
-            bool_read_df=bool_read_df,
-            fillna_value = fillna_value
+            _pandas_ExcelFile =excelFile,
+            _name_Dataframe=name,
+            _name_ExcelSheet=sheet_name,
+
+            _bool_read_df=bool_read_sheet,
+            _read_fillna_value = read_fillna_value
+
         )
         
         df_instance.read_Dataframe_fromExcel()
         
         df_instance.clean()
+
         if bool_build_df:
             df_instance.build(managerDF=managerDF)
+
+        if bool_build_indicator_based:
+            df_instance.build(managerDF=managerDF, keepCols=build_keep_columns)
         
+        if bool_build_column_based:
+            pass
+
         ic(df_instance.pandas_Dataframe)
         
         if name == 'BaseDF':
@@ -130,7 +149,13 @@ def main():
 
     # Perform some checks with using retrieving methods from dataframes. If those work, then continue to implementing build() for different df's.
     df = managerDF.get_Dataframe('BaseDF')
+    dfIndic = managerDF.get_Dataframe('ExecutedOnLineIndicatorDF')
     ic(df.bool_read_df)
+    ic(dfIndic.read_fillna_value)
+
+    indexDF = managerDF.get_Dataframe('IndexDF', expected_return_type=IndexSetsDataframe) # type: IndexSetsDataframe
+    ic(indexDF.time_intervals)
+
 
 if __name__ == '__main__':
     main()
