@@ -8,15 +8,6 @@ import openpyxl
 
 from icecream import ic
 from typing import Union
-from dataclasses import dataclass
-
-@dataclass
-class BaseDataframeConfig:
-    name_excel_sheet: str
-    class_type: type(BaseDataframe)
-    read_sheet: bool = True
-    build_df: bool = False
-    read_fillna_value: Union[None, any] = None
 
 
 class BaseDataframe:
@@ -259,8 +250,7 @@ class BaseDataframe:
                 )
         
         # If the given sheet_name can be found in the given ExcelFile.
-        elif self.name_ExcelSheet in self.pandas_ExcelFile.sheet_names:
-            pass
+        pass
     
     # Frame manipulations
     def _change_index_to_firstCol(self):
@@ -367,6 +357,8 @@ class IndexSetsDataframe(BaseDataframe):
             fillna_value
             )
 
+    #FIXME: Make this variable, such that they van be changed in the initial configuration instead of here, use a dictionary.
+    
     ### RETRIEVE SPECIFIC INDEX SETS
     def get_orders_suborder_set(self):
         return self.pandas_Dataframe['Orders_suborders']
@@ -476,6 +468,7 @@ class OldPlanningDataframe(BaseDataframe):
             self.change_cleaned_status(True) 
 
 
+
 class ManualPlanningDataframe(BaseDataframe):
     """The oldPlanningDataframe is a class that is used to describe the oldPlanningDF.
 
@@ -530,6 +523,7 @@ class ManualPlanningDataframe(BaseDataframe):
             self.pandas_Dataframe = self.pandas_Dataframe[self.pandas_Dataframe != 0.0]
             
             self.change_cleaned_status(True)
+
 
 
 class AvailabilityDataframe(BaseDataframe):
@@ -619,7 +613,7 @@ class CombinedPlanningDataframe(BaseDataframe):
         
         """
         oldPlanningDF, manualPlanningDF = managerDF.get_Dataframe(
-            dfs_to_get=['OldPlanningDF', 'manualPlanningDF']
+            dfs_to_get=['OldPlanningDF', 'ManualPlanningDF']
             )
 
         combinedPlanningDF: pd.DataFrame = pd.DataFrame()
@@ -761,18 +755,11 @@ class IndicatorBuildDataframe(BaseDataframe):
             keepCols: list[str]
             ):
         
-        managerDF._validate_presence_Dataframe(
-            dfs_to_check = 'OrderDF', 
-            check_pandasDF_presence = True, 
-            check_clean_status = True
-            )
-
         orderDF = managerDF.get_Dataframe('OrderDF').get_pandas_Dataframe().copy()
         
         # Get columns to drop.
         drop_cols = [
-            col 
-            for col in orderDF.columns 
+            col for col in orderDF.columns 
             if col not in keepCols
             ]
         
@@ -785,6 +772,7 @@ class IndicatorBuildDataframe(BaseDataframe):
             [True, False]
             )
         
+        # Create the new pandasDF
         newDF = pd.DataFrame(
             indicator, 
             index=newDF.index
@@ -793,6 +781,21 @@ class IndicatorBuildDataframe(BaseDataframe):
         self.pandas_Dataframe = newDF
     
 
+
+class ExecutedOnLineIndicatorDataframe(IndicatorBuildDataframe):
+    def __init__(self, pandas_ExcelFile: pd.ExcelFile, name_Dataframe: str, name_ExcelSheet: str = None, bool_read_df: bool = True, bool_build_df: bool = False, fillna_value=None) -> None:
+        super().__init__(pandas_ExcelFile, name_Dataframe, name_ExcelSheet, bool_read_df, bool_build_df, fillna_value)
+
+    def build(
+            self, 
+            managerDF: ManagerDataframes, 
+            keepCols: Union[
+                str, 
+                list[str]
+                ]
+            ):
+        
+        self.indicatorBuilder(managerDF=managerDF, keepCols=keepCols)
 
 class ManagerDataframes:
     """This class is used to store different dataframes. It can then be used to fetch or remove certain dataframes based on their name.
@@ -854,7 +857,9 @@ class ManagerDataframes:
             dfs_to_get: Union[
                 list[str], 
                 str
-                ]
+                ],
+            check_pandasDF_presence: bool = True,
+            check_clean_status: bool = True
         ) -> Union[
             BaseDataframe, 
             list[BaseDataframe]
@@ -863,7 +868,9 @@ class ManagerDataframes:
 
         Args:
             dfs_to_get (Union[list[str], str]): df_name(s) to retrieve.
-
+            check_pandasDF_presence (bool): Should a pandasDF be precent in order to be retrieved. Defaults to True.
+            check_clean_status (bool): Should a pandasDF be cleaned in order to be retrieved. Defaults to True.
+        
         Returns:
             Union[BaseDataframe, list(BaseDataframe)]: Asked for BaseDataframe(s) (subclass)
         """
@@ -880,8 +887,8 @@ class ManagerDataframes:
         if dfs_to_validate:
             self._validate_presence_Dataframe(
                 dfs_to_check=dfs_to_validate, 
-                check_pandasDF_presence=True, 
-                check_clean_status=True
+                check_pandasDF_presence=check_pandasDF_presence, 
+                check_clean_status=check_clean_status
                 )    
         
         if len(dfs_to_get) == 1:
