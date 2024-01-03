@@ -111,6 +111,9 @@ def main():
         
         ic(df_instance.pandas_Dataframe)
         
+        if name == 'BaseDF':
+            df_instance.status_cleaned = True
+            
         managerDF.store_Dataframe(df_instance)
 
     # Perform some checks with using retrieving methods from dataframes. If those work, then continue to implementing build() for different df's.
