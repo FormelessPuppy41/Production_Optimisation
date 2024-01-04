@@ -40,13 +40,7 @@ class ConfigBaseDataframe:
 def main(): 
 
     dfs = {
-        # >>>> Name of instance: [
-        # >>>>      name of excelSheet: str
-        # >>>>      Class type of Dataframe: BaseDataframe // Subclass
-        # >>>>      Read Sheet: bool
-        # >>>>      Build DF: bool #FIXME: Is this necessary, since each build is defined for each class already.
-        # >>>>      Read Fillna_Value: any #FIXME: Could fillna_value be removed from all constructors, and replaced with a chance method if it is needed for a df?
-        # >>>> ],
+        # >>>> Name of Dataframe instance: ConfigBaseDataframe[...]
         'BaseDF': ConfigBaseDataframe(
             class_type=BaseDataframe,
             read_sheet=False
@@ -153,8 +147,9 @@ def main():
     ic(df.bool_read_df)
     ic(dfIndic.read_fillna_value)
 
-    indexDF = managerDF.get_Dataframe('IndexDF', expected_return_type=IndexSetsDataframe) # type: IndexSetsDataframe
-    ic(indexDF.time_intervals)
+    # FIXME: Should return error for orderDataframe type.
+    indexDF = managerDF.get_Dataframe('IndexDF', expected_return_type=OrderDataframe)
+    ic(indexDF)
 
 
 if __name__ == '__main__':

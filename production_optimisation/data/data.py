@@ -7,7 +7,7 @@ import numpy as np
 import openpyxl
 
 from icecream import ic
-from typing import Union
+from typing import Union, TypeVar
 
 
 class BaseDataframe:
@@ -860,6 +860,8 @@ class IndicatorBuildDataframe(BaseDataframe):
             )
 
 
+
+
 class ExecutedOnLineIndicatorDataframe(IndicatorBuildDataframe):
     def __init__(
             self, 
@@ -890,6 +892,75 @@ class ExecutedOnLineIndicatorDataframe(IndicatorBuildDataframe):
         self.indicatorBuilder(managerDF=managerDF, keepCols=keepCols)
 
 
+
+from dataclasses import dataclass
+
+@dataclass
+class ConfigBaseDataframe:
+    """Class used to present a configuring for BaseDataframes.
+    """
+    name_excel_sheet: str = None
+    class_type: type[BaseDataframe] = BaseDataframe
+
+    read_sheet: bool = True
+    read_fillna_value: Union[None, any] = None
+    
+    build_df: bool = False
+    build_column_based: bool = False
+    build_indicator_based: bool = False
+    build_keep_columns: Union[str, list[str]] = None
+
+dfs = {
+        # >>>> Name of instance: ConfigBaseDataframe[...]
+        'BaseDF': ConfigBaseDataframe(
+            class_type=BaseDataframe,
+            read_sheet=False
+            ), 
+        'OrderDF': ConfigBaseDataframe(
+            name_excel_sheet='Orders_dataframe',
+            class_type=OrderDataframe,
+            read_fillna_value=''
+            ), 
+        'IndexDF': ConfigBaseDataframe(
+            name_excel_sheet='Index_sets_dataframe', 
+            class_type=IndexSetsDataframe,
+            read_fillna_value=''
+            ),
+        'OldPlanningDF': ConfigBaseDataframe(
+            name_excel_sheet='Planning', 
+            class_type=OldPlanningDataframe,
+            read_fillna_value=0.0
+            ), 
+        'ManualPlanningDF': ConfigBaseDataframe(
+            name_excel_sheet='Manual_planning', 
+            class_type=ManualPlanningDataframe,
+            read_fillna_value=0.0
+            ), 
+        'AvailabilityDF': ConfigBaseDataframe(
+            name_excel_sheet='Config_availability',
+            class_type=AvailabilityDataframe,
+            read_fillna_value=0.0
+            ),
+        'SkillDF': ConfigBaseDataframe(
+            name_excel_sheet='Config_skills', 
+            class_type=SkillDataframe,
+            read_fillna_value=0.0
+            ), 
+        'CombinedPlanningDF': ConfigBaseDataframe(
+            class_type=CombinedPlanningDataframe,
+            read_sheet=False,
+            build_df=True
+            ),
+        'ExecutedOnLineIndicatorDF': ConfigBaseDataframe(
+            class_type=ExecutedOnLineIndicatorDataframe,
+            read_sheet=False,
+            build_indicator_based=True,
+            build_keep_columns=['On_line', 'Production_line_specific_line']
+
+            )
+    }        
+
+T = TypeVar('T', bound='BaseDataframe')
 class ManagerDataframes:
     """This class is used to store different dataframes. It can then be used to fetch or remove certain dataframes based on their name.
     """
@@ -947,67 +1018,89 @@ class ManagerDataframes:
     
     #FIXME: Works, but does not do the correct type hinting. So try to fix that, otherwise return to the previous way as it was more concise.
     def get_Dataframe(
-            self, 
-            dfs_to_get: Union[
-                list[str], 
-                str
-                ],
+            self,
+            dfs_to_get: Union[list[str], str],
             check_pandasDF_presence: bool = True,
-            check_clean_status: bool = True, 
-            expected_return_type: type[BaseDataframe] = BaseDataframe
-        ) -> Union[
-            BaseDataframe, 
-            list[BaseDataframe]
-            ]:
+            check_clean_status: bool = True,
+            expected_return_type: type[T] = BaseDataframe # appears not to be used, but without it the typing does not work when using a result of get_Dataframe(). e.g. indexDF.time_intervals would not be suggested.
+    ) -> Union[T, list[T]]:
         """Retrieves dataframe if it is present, if not raises a value error.
 
         Args:
-            dfs_to_get (Union[list[str], str]): df_name(s) to retrieve.
-            check_pandasDF_presence (bool): Should a pandasDF be precent in order to be retrieved. Defaults to True.
+            dfs_to_get (Union[List[str], str]): df_name(s) to retrieve.
+            check_pandasDF_presence (bool): Should a pandasDF be present in order to be retrieved. Defaults to True.
             check_clean_status (bool): Should a pandasDF be cleaned in order to be retrieved. Defaults to True.
-        
+
         Returns:
-            Union[BaseDataframe, list(BaseDataframe)]: Asked for BaseDataframe(s) (subclass)
+            Union[BaseDataframe, List(BaseDataframe)]: Asked for BaseDataframe(s) (subclass)
         """
-        def _check_dataframe_type(dataframe: BaseDataframe, dataframe_location: int = 0):
-            if type(expected_return_type) is BaseDataframe:
-                pass
-            elif isinstance(expected_return_type, tuple):
-                if not isinstance(dataframe, expected_return_type[dataframe_location]):
-                    raise TypeError(f"Expected datframe of type: '{expected_return_type[dataframe_location]}' \n But got dataframe of type: '{type(dataframe)}', for dataframe: '{dataframe}'")
-            else:
-                if not isinstance(dataframe, expected_return_type):
-                    raise TypeError(f"Expected datframe of type: '{expected_return_type[dataframe_location]}' \n But got dataframe of type: '{type(dataframe)}', for dataframe: '{dataframe}'")
-                 
+        def _check_dataframe_type(
+                dataframe: BaseDataframe, 
+                dataframe_location: int = 0
+                ):
+            """Check whether the type is correct
+
+            Args:
+                dataframe (BaseDataframe): _description_
+                dataframe_location (int, optional): location of dataframe in dfs_to_get. Defaults to 0.
+
+            Raises:
+                TypeError: If the expected dataframe type is not equal to the actual dataframe type.
+            """
+            expected_return_type = _get_expected_return_type(dfs_to_get[dataframe_location])
+            
+            if not issubclass(type(dataframe), expected_return_type):
+                raise TypeError(f"Expected dataframe of type: '{expected_return_type}' \n "
+                                f"But got dataframe of type: '{type(dataframe)}', for dataframe: '{dataframe}'")
+
+        def _get_expected_return_type(df_name: str) -> type[T]:
+            """Get the expected class type of a dataframe by name.
+
+            Args:
+                df_name (str): Dataframe name to get expected class from.
+
+            Raises:
+                KeyError: If df_name cannot be found in the dfs dictionary.
+
+            Returns:
+                type[T]: Expected class_type of the Dataframe.
+            """
+            if df_name not in dfs.keys():
+                raise KeyError(f"The dataframe name: '{df_name}', was not found in the keys of the 'dfs' dictionairy: \n \n '{dfs}'")
+            
+            return dfs[df_name].class_type
+        
         if isinstance(dfs_to_get, str):
-            return self.get_Dataframe(dfs_to_get=[dfs_to_get])
+            return self.get_Dataframe(
+                dfs_to_get=[dfs_to_get],
+                expected_return_type=_get_expected_return_type(dfs_to_get)
+                )
 
         # Only validate if df has not yet been checked.
-        dfs_to_validate = []
-        for df in dfs_to_get:
-            if df not in self.validated_dfs.keys():
-                dfs_to_validate.append(df)
-        
+        dfs_to_validate = [df for df in dfs_to_get if df not in self.validated_dfs.keys()]
+
         # Validate not yet checked dfs
         if dfs_to_validate:
             self._validate_presence_Dataframe(
-                dfs_to_check=dfs_to_validate, 
-                check_pandasDF_presence=check_pandasDF_presence, 
+                dfs_to_check=dfs_to_validate,
+                check_pandasDF_presence=check_pandasDF_presence,
                 check_clean_status=check_clean_status
-                )    
-        
+            )
+
         if len(dfs_to_get) == 1:
             df = self.stored_Dataframes[dfs_to_get[0]]
             _check_dataframe_type(dataframe=df)
             return df
-        
         else:
             dataframe_location = 0
             results = []
 
             for df in dfs_to_get:
                 specific_df = self.stored_Dataframes[df]
-                _check_dataframe_type(dataframe=specific_df, dataframe_location=dataframe_location)
+                _check_dataframe_type(
+                    dataframe=specific_df, 
+                    dataframe_location=dataframe_location
+                    )
                 results.append(specific_df)
 
                 dataframe_location += 1
