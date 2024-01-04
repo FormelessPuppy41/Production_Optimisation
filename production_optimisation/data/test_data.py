@@ -13,7 +13,8 @@ from data import (
     SkillDataframe, 
     ManagerDataframes, 
     CombinedPlanningDataframe,
-    PenaltyDataframe
+    PenaltyDataframe, 
+    SolutionDataframe
     )
 
 from dataclasses import dataclass
@@ -81,7 +82,12 @@ def main():
             class_type=PenaltyDataframe,
             read_sheet=False,
             build_df=True
-            )
+            ),
+        'SolutioinDF': ConfigBaseDataframe(
+            name_excel_sheet='Planning',
+            class_type=SolutionDataframe,
+            read_sheet=False
+        )
     }
     
     excelFile = pd.ExcelFile(
@@ -128,7 +134,7 @@ def main():
     # Perform some checks with using retrieving methods from dataframes. If those work, then continue to implementing build() for different df's.
     orderDF = managerDF.get_Dataframe('OrderDF', expected_return_type_input=OrderDataframe)
     ic(orderDF.pandas_Dataframe)
-    ic(orderDF.executed_on_line_df)
+    ic(orderDF.specific_order_df)
 
     penaltyDF = managerDF.get_Dataframe('PenaltyDF')
     ic(penaltyDF.pandas_Dataframe)

@@ -35,7 +35,7 @@ orderBased = {
     'revenue_df': ConfigOrderBased(
         keepCols=['Revenue']
     ), 
-    'order_specific_df': ConfigOrderBased(
+    'specific_order_df': ConfigOrderBased(
         keepCols=['Order_number', 'Sub_order']
     ), 
     'percentage_df': ConfigOrderBased(
@@ -350,8 +350,8 @@ class OrderDataframe(BaseDataframe):
     def revenue_df(self) -> pd.DataFrame:
         return self._column_property_finder('revenue_df')
     @property
-    def order_specific_df(self) -> pd.DataFrame:
-        return self._column_property_finder('order_specific_df')
+    def specific_order_df(self) -> pd.DataFrame:
+        return self._column_property_finder('specific_order_df')
     @property
     def percentage_df(self) -> pd.DataFrame:
         return self._column_property_finder('percentage_df')
@@ -456,7 +456,7 @@ class IndexSetsDataframe(BaseDataframe):
     
     #FIXME: Make this variable, such that they van be changed in the initial configuration instead of here, use a dictionary.
     def __post_cleaning__(self):
-        self._orders_suborder = self._remove_values_from_series(
+        self._order_suborder = self._remove_values_from_series(
             series=self._pandas_Dataframe['Orders_suborders'], 
             value_to_replace=''
             ).to_list()
@@ -487,8 +487,8 @@ class IndexSetsDataframe(BaseDataframe):
    
     ### PROPTERTIES OF INDEX SETS: SPECIFIC INDEX SETS
     @property
-    def orders_suborder(self):
-        return self._orders_suborder
+    def order_suborder(self):
+        return self._order_suborder
     
     @property
     def orders(self):
@@ -918,7 +918,7 @@ class PenaltyDataframe(BaseDataframe):
 
         # Obtain specific index sets of IndexDF
         time_index = indexDF.time_intervals
-        order_suborder_index = indexDF.orders_suborder
+        order_suborder_index = indexDF.order_suborder
 
         penalty_df = pd.DataFrame(index=time_index, columns=order_suborder_index)
 
@@ -931,6 +931,9 @@ class PenaltyDataframe(BaseDataframe):
         self.pandas_Dataframe = penalty_df
     
 
+
+class SolutionDataframe(BaseDataframe):
+    pass
 
 #TODO: Put me in the beginning of the file or in a config file. 
 @dataclass
