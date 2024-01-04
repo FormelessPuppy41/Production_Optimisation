@@ -7,8 +7,6 @@ from icecream import ic
 import sys
 
 from data.dataframe import Dataframe
-from data.dataframes import Dataframes
-from data.data_index import Data_Index
 
 from general_configuration import dfs, old_planning_limit
 
@@ -137,7 +135,7 @@ class EWOptimisation:
         self.combined_planning_df = self.managerDF.get_Dataframe('CombinedPlanningDF').pandas_Dataframe
 
         # Create dataframe where unique_code can be looked for by using specific order and suborder. (order, suborder) -> (order_suborder)
-            # NOTE: This can be made a 'specific' function if we implement subclasses of the dataframe class, like it is stated in the todo's
+            # FIXME: NOTE This can be made a 'specific' function if we implement subclasses of the dataframe class, like it is stated in the todo's
             # RENAME: reverseSearch_specific_order_suborder?!
         transpose_specific_order_suborder = self.specific_order_suborder.copy()
         transpose_index = self.specific_order_suborder.columns.to_list()
@@ -824,7 +822,8 @@ class EWOptimisation:
         self.m.gaps_gaps3 = pyo.Constraint(self.m.set_order_suborder, self.m.set_time, rule=rule_gaps_gaps3)
 
         self.model_created = True
-        
+    
+    #FIXME: Improve readability etc.
     def solve(self, solver_options=None): 
         """This function solves the previously created problem. 
 
@@ -838,11 +837,10 @@ class EWOptimisation:
         # Check whether the model has been formulated
         if not self.model_created: 
             import sys
-            print("Model has not yet been created, that is no variables or constraints are added yet, beefore .solve() is called. ")
+            print("Model has not yet been created, that is no variables or constraints are added yet, before .solve() is called. ")
             # Or raise ValueError()
             sys.exit()
             
-
         solver = pyo.SolverFactory('cbc')
 
         # Set solver options if provided, such as solving time limit.
@@ -870,9 +868,8 @@ class EWOptimisation:
         self.short_solution.name = 'allocation'
 
         # Create the corresponding 'Dataframe' object, and change the corresponding pandas_dataframe.
-        self.shortSolution = Dataframe(pandas_excel_file=self.excel_file, dataframe_name='solution_df', excel_sheet_name=dfs.get('solution_df')[0])
-        self.shortSolution.change_pandas_dataframe(self.short_solution)
-
+        self.managerDF.get_Dataframe('SolutionDF').pandas_Dataframe = self.short_solution
+        
         print(self.short_solution)
 
         # Obtain a dataframe with the gaps in the planning.
