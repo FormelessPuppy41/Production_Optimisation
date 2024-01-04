@@ -13,6 +13,9 @@ from dataclasses import dataclass
 
 @dataclass
 class ConfigOrderBased:
+    """Class used to present a configuration for properties in the OrderDF. 
+    \n That is, which columns to keep in order to get a series of (a single) column(s).
+    """
     keepCols: Union[list[str], str]
 
 orderBased = {
@@ -879,96 +882,6 @@ class PenaltyDataframe(BaseDataframe):
     def build():
         pass
     
-
-
-class IndicatorBuildDataframe(BaseDataframe):
-    def __init__(
-            self, 
-            _pandas_ExcelFile: pd.ExcelFile, 
-            _name_Dataframe: str, 
-            _name_ExcelSheet: str = None, 
-            _bool_read_df: bool = True, 
-            _bool_build_df: bool = False, 
-            _read_fillna_value=None
-            ) -> None:
-        super().__init__(
-            _pandas_ExcelFile, 
-            _name_Dataframe, 
-            _name_ExcelSheet, 
-            _bool_read_df, 
-            _bool_build_df, 
-            _read_fillna_value
-            )
-
-    def build(
-            self, 
-            managerDF: ManagerDataframes,  
-            keepCols: Union[
-                str, 
-                list[str]
-                ]
-        ):
-        """Get a indicator of the OrderDF where the columns 'keepCols' are kept. And saves the new PandasDF
-
-        Args:
-            managerDF (ManagerDataframes): ManagerDataframe that should contain OrderDf, precense is validated within function.
-            keepCols (Union[str, list[str]]): columns to keep as indicators. Values within column must be 0/1 or False/True
-        """
-        # Obtain the ordersDF.
-        orderDF = managerDF.get_Dataframe('OrderDF').pandas_Dataframe.copy()
-        
-        # Get columns to drop.
-        drop_cols = [
-            col for col in orderDF.columns
-            if col not in keepCols
-            ]
-        newDF = orderDF.drop(columns=drop_cols)
-
-        # Make Indicator: if value is True or 1 then True, else False.
-        newDF = (newDF == True) | (newDF == 1)
-        
-        self._pandas_Dataframe = newDF
-
-
-
-class ColumnBuildDataframe(BaseDataframe):
-    def __init__(
-            self, 
-            _pandas_ExcelFile: pd.ExcelFile, 
-            _name_Dataframe: str, 
-            _name_ExcelSheet: str = None, 
-            _bool_read_df: bool = True,
-            _bool_build_df: bool = False, 
-            _read_fillna_value=None
-            ) -> None:
-        super().__init__(
-            _pandas_ExcelFile, 
-            _name_Dataframe, 
-            _name_ExcelSheet, 
-            _bool_read_df, 
-            _bool_build_df,
-            _read_fillna_value
-            )
-    
-    def build(
-            self, 
-            managerDF: ManagerDataframes,  
-            keepCols: Union[
-                str, 
-                list[str]
-                ]
-        ):
-        # Obtain the ordersDF.
-        orderDF = managerDF.get_Dataframe('OrderDF').pandas_Dataframe.copy()
-        
-        # Get columns to drop.
-        drop_cols = [
-            col for col in orderDF.columns
-            if col not in keepCols
-            ]
-        newDF = orderDF.drop(columns=drop_cols)
-
-        pass
 
 
 #TODO: Put me in the beginning of the file or in a config file. 

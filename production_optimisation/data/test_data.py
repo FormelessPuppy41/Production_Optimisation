@@ -12,9 +12,7 @@ from data import (
     AvailabilityDataframe, 
     SkillDataframe, 
     ManagerDataframes, 
-    CombinedPlanningDataframe, 
-    IndicatorBuildDataframe, 
-    ColumnBuildDataframe
+    CombinedPlanningDataframe
     )
 
 from dataclasses import dataclass
@@ -30,9 +28,6 @@ class ConfigBaseDataframe:
     read_fillna_value: Union[None, any] = None
     
     build_df: bool = False
-    build_column_based: bool = False
-    build_indicator_based: bool = False
-    build_keep_columns: Union[str, list[str]] = None
 
 #TODO: Add main() in parts to data.py
 # dfs in beginning file or import from gen.config
@@ -80,22 +75,8 @@ def main():
             class_type=CombinedPlanningDataframe,
             read_sheet=False,
             build_df=True
-            ),
-        'ExecutedOnLineIndicatorDF': ConfigBaseDataframe(
-            class_type=IndicatorBuildDataframe,
-            read_sheet=False,
-            build_indicator_based=True,
-            build_keep_columns=['On_line']
-            ),
-        'time_req_df': ConfigBaseDataframe(
-            class_type=ColumnBuildDataframe,
-            read_sheet=False,
-            build_column_based=True,
-            build_keep_columns=['Time_hours_lowerbound', 'Time_hours_upperbound']
-        )
+            )
     }
-    # 'time_req_df', 'specific_line_df', 'dates_df', 'next_prev_suborder_df', 'revenue_df', 'order_specific_df', 'percentage_df'        
-    #FIXME: dfs_to_build_columnBased -> based on ordersDF, make subclass of basedataframe: 'orderssubclass ofz' and then for all in 'dfs_to_build_columnBased' a subclass of that classs.
     
     excelFile = pd.ExcelFile(
         "/Users/gebruiker/Documents/GitHub/Production_Optimisation/production_optimisation/EW_Optimisation.xlsm", 
@@ -112,9 +93,6 @@ def main():
         read_fillna_value = config.read_fillna_value
 
         bool_build_df = config.build_df
-        bool_build_column_based = config.build_column_based
-        bool_build_indicator_based = config.build_indicator_based
-        build_keep_columns = config.build_keep_columns
 
         #ic(name)
 
@@ -134,12 +112,6 @@ def main():
 
         if bool_build_df:
             df_instance.build(managerDF=managerDF)
-
-        if bool_build_indicator_based:
-            df_instance.build(managerDF=managerDF, keepCols=build_keep_columns)
-        
-        if bool_build_column_based:
-            pass
 
         #ic(df_instance.pandas_Dataframe)
         
