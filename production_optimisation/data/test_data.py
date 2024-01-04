@@ -12,7 +12,8 @@ from data import (
     AvailabilityDataframe, 
     SkillDataframe, 
     ManagerDataframes, 
-    CombinedPlanningDataframe
+    CombinedPlanningDataframe,
+    PenaltyDataframe
     )
 
 from dataclasses import dataclass
@@ -75,6 +76,11 @@ def main():
             class_type=CombinedPlanningDataframe,
             read_sheet=False,
             build_df=True
+            ), 
+        'PenaltyDF': ConfigBaseDataframe(
+            class_type=PenaltyDataframe,
+            read_sheet=False,
+            build_df=True
             )
     }
     
@@ -103,7 +109,6 @@ def main():
 
             _bool_read_df=bool_read_sheet,
             _read_fillna_value = read_fillna_value
-
         )
         
         df_instance.read_Dataframe_fromExcel()
@@ -125,6 +130,8 @@ def main():
     ic(orderDF.pandas_Dataframe)
     ic(orderDF.executed_on_line_df)
 
+    penaltyDF = managerDF.get_Dataframe('PenaltyDF')
+    ic(penaltyDF.pandas_Dataframe)
 
 if __name__ == '__main__':
     main()

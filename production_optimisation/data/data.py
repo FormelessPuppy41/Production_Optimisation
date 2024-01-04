@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import pandas as pd
 import numpy as np
+import math
 import openpyxl
 
 from icecream import ic
@@ -426,6 +427,8 @@ class OrderDataframe(BaseDataframe):
 
         return newDF
 
+
+
 class IndexSetsDataframe(BaseDataframe):
     """The indexSetsDataframe is a class that is used to describe the IndexDF.
 
@@ -567,6 +570,7 @@ class IndexSetsDataframe(BaseDataframe):
             pd.Series: Series without the removed values.
         """
         return series.replace(to_replace=value_to_replace, value=pd.NA).dropna()
+
 
 
 class OldPlanningDataframe(BaseDataframe):
@@ -734,6 +738,7 @@ class SkillDataframe(BaseDataframe):
             self._status_cleaned = True
 
 
+
 ### DATAFRAMES THAT ARE BUILD
 
 class CombinedPlanningDataframe(BaseDataframe):
@@ -860,7 +865,7 @@ class CombinedPlanningDataframe(BaseDataframe):
     
 
 
-#FIXME: Complete
+#FIXME: Improve efficiency using np.
 class PenaltyDataframe(BaseDataframe):
     def __init__(
             self, _pandas_ExcelFile: pd.ExcelFile, 
@@ -879,8 +884,51 @@ class PenaltyDataframe(BaseDataframe):
             _read_fillna_value
             )
     
-    def build():
-        pass
+    def build(self, managerDF: ManagerDataframes):
+
+        @staticmethod
+        def _calc_penalty(ti: pd.Timestamp, order_suborder: str, dates_df: pd.DataFrame, revenue_df: pd.DataFrame, time_req_df: pd.DataFrame) -> float:
+            date_start = dates_df.loc[order_suborder].iloc[0]
+            date_deadline = dates_df.loc[order_suborder].iloc[1]
+            revenue = revenue_df.loc[order_suborder].iloc[0]
+            time_req_lb = time_req_df.loc[order_suborder].iloc[0]
+            time_req_ub = time_req_df.loc[order_suborder].iloc[1]
+
+            start_penalty = True if ti >= date_start else False
+            penalty = 50
+
+            if start_penalty:
+                start_now = (ti-date_start)/pd.Timedelta('1D')
+                deadline_now = (date_deadline - ti) / pd.Timedelta('1D')
+                multiply_now = 4 * ((ti - pd.Timestamp('1900-01-01'))/ pd.Timedelta('1D'))
+                exp_val = deadline_now/multiply_now
+        
+                penalty = start_now + math.exp(exp_val) + math.log(revenue)
+            
+            return penalty
+
+        # Obtain needed dataframes.
+        orderDF = managerDF.get_Dataframe('OrderDF', expected_return_type_input=OrderDataframe)
+        indexDF = managerDF.get_Dataframe('IndexDF', expected_return_type_input=IndexSetsDataframe)
+        
+        # Obtain specific columns of OrderDF
+        dates_df = orderDF.dates_df
+        revenue_df = orderDF.revenue_df
+        time_req_df = orderDF.time_req_df
+
+        # Obtain specific index sets of IndexDF
+        time_index = indexDF.time_intervals
+        order_suborder_index = indexDF.orders_suborder
+
+        penalty_df = pd.DataFrame(index=time_index, columns=order_suborder_index)
+
+        ic(dates_df, revenue_df, time_req_df)
+        #FIXME: use np to optimise efficiency.
+        for ti in time_index:
+            for order_suborder in order_suborder_index:
+                penalty_df.loc[ti, order_suborder] = _calc_penalty(ti=ti, order_suborder=order_suborder, dates_df=dates_df, revenue_df=revenue_df, time_req_df=time_req_df)
+
+        self.pandas_Dataframe = penalty_df
     
 
 
@@ -940,13 +988,11 @@ dfs = {
             class_type=CombinedPlanningDataframe,
             read_sheet=False,
             build_df=True
-            ),
-        'ExecutedOnLineIndicatorDF': ConfigBaseDataframe(
-            class_type=IndicatorBuildDataframe,
+            ), 
+        'PenaltyDF': ConfigBaseDataframe(
+            class_type=PenaltyDataframe,
             read_sheet=False,
-            build_indicator_based=True,
-            build_keep_columns=['On_line', 'Production_line_specific_line']
-
+            build_df=True
             )
     }        
 
@@ -1200,7 +1246,7 @@ class ManagerDataframes:
 
         if errors:
             raise AttributeError(
-                f"While validating the presence of (a) dataframe(s), one or more errors have occurred: \n {', '.join(f'{key}: {value}' for key, value in errors.items())} \n\n The following things did not go as expected: \n{incorrect}. \n\n The following things did go as expected: \n {correct}"
+                f"While validating the presence of (a) dataframe(s), one or more errors have occurred: \n {', '.join(f'{key}' for key in errors.keys())} \n\n The following things did not go as expected: \n{incorrect}. \n\n The following things did go as expected: \n {correct}"
             )
         
     def _check_name_in_StoredDataframes(self, _name_Dataframe: str):
