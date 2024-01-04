@@ -13,7 +13,8 @@ from data import (
     SkillDataframe, 
     ManagerDataframes, 
     CombinedPlanningDataframe, 
-    ExecutedOnLineIndicatorDataframe
+    IndicatorBuildDataframe, 
+    ColumnBuildDataframe
     )
 
 from dataclasses import dataclass
@@ -81,13 +82,19 @@ def main():
             build_df=True
             ),
         'ExecutedOnLineIndicatorDF': ConfigBaseDataframe(
-            class_type=ExecutedOnLineIndicatorDataframe,
+            class_type=IndicatorBuildDataframe,
             read_sheet=False,
             build_indicator_based=True,
-            build_keep_columns=['On_line', 'Production_line_specific_line']
-
-            )
-    }        
+            build_keep_columns=['On_line']
+            ),
+        'time_req_df': ConfigBaseDataframe(
+            class_type=ColumnBuildDataframe,
+            read_sheet=False,
+            build_column_based=True,
+            build_keep_columns=['Time_hours_lowerbound', 'Time_hours_upperbound']
+        )
+    }
+    # 'time_req_df', 'specific_line_df', 'dates_df', 'next_prev_suborder_df', 'revenue_df', 'order_specific_df', 'percentage_df'        
     #FIXME: dfs_to_build_columnBased -> based on ordersDF, make subclass of basedataframe: 'orderssubclass ofz' and then for all in 'dfs_to_build_columnBased' a subclass of that classs.
     
     excelFile = pd.ExcelFile(
@@ -109,7 +116,7 @@ def main():
         bool_build_indicator_based = config.build_indicator_based
         build_keep_columns = config.build_keep_columns
 
-        ic(name)
+        #ic(name)
 
         df_instance: type[BaseDataframe] = class_name(
             _pandas_ExcelFile =excelFile,
@@ -134,7 +141,7 @@ def main():
         if bool_build_column_based:
             pass
 
-        ic(df_instance.pandas_Dataframe)
+        #ic(df_instance.pandas_Dataframe)
         
         if name == 'BaseDF':
             df_instance.status_cleaned = True
@@ -142,14 +149,9 @@ def main():
         managerDF.store_Dataframe(df_instance)
 
     # Perform some checks with using retrieving methods from dataframes. If those work, then continue to implementing build() for different df's.
-    df = managerDF.get_Dataframe('BaseDF')
-    dfIndic = managerDF.get_Dataframe('ExecutedOnLineIndicatorDF')
-    ic(df.bool_read_df)
-    ic(dfIndic.read_fillna_value)
-
-    # FIXME: Should return error for orderDataframe type.
-    indexDF = managerDF.get_Dataframe('IndexDF', expected_return_type=OrderDataframe)
-    ic(indexDF)
+    orderDF = managerDF.get_Dataframe('OrderDF', expected_return_type_input=OrderDataframe)
+    ic(orderDF.pandas_Dataframe)
+    ic(orderDF.executed_on_line_df)
 
 
 if __name__ == '__main__':

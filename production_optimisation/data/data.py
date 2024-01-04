@@ -9,6 +9,39 @@ import openpyxl
 from icecream import ic
 from typing import Union, TypeVar
 
+from dataclasses import dataclass
+
+@dataclass
+class ConfigOrderBased:
+    keepCols: Union[list[str], str]
+
+orderBased = {
+    'time_req_df': ConfigOrderBased(
+        keepCols=['Time_hours_lowerbound', 'Time_hours_upperbound']
+    ), 
+    'specific_line_df': ConfigOrderBased(
+        keepCols=['Production_line_specific_line']
+    ), 
+    'dates_df': ConfigOrderBased(
+        keepCols=['Date_start', 'Date_deadline']
+    ), 
+    'next_prev_suborder_df': ConfigOrderBased(
+        keepCols=['Previous_sub_order', 'Next_sub_order']
+    ), 
+    'revenue_df': ConfigOrderBased(
+        keepCols=['Revenue']
+    ), 
+    'order_specific_df': ConfigOrderBased(
+        keepCols=['Order_number', 'Sub_order']
+    ), 
+    'percentage_df': ConfigOrderBased(
+        keepCols=['Percentage_prev_sub_order_needed_before_next_sub_order']
+    ), 
+    'executed_on_line_df': ConfigOrderBased(
+        keepCols=['On_line']
+    )
+}
+
 
 class BaseDataframe:
     """The basic methods and attributes for a Dataframe. They are further specified in their own subclass.
@@ -77,7 +110,7 @@ class BaseDataframe:
         self._pandas_ExcelFile = new_Pandas_ExcelFile
 
     @property
-    def pandas_Dataframe(self) -> type[pd.DataFrame]:
+    def pandas_Dataframe(self) -> pd.DataFrame:
         return self._pandas_Dataframe
     @pandas_Dataframe.setter
     def pandas_Dataframe(
@@ -151,45 +184,6 @@ class BaseDataframe:
     def build(self):
         """Empty build function, since building method depends on the Dataframe type. \n Specify the subclass in order to build it.
         """
-        pass
-    
-    def indicatorBuilder(
-                self, 
-                managerDF: ManagerDataframes,  
-                keepCols: Union[
-                    str, 
-                    list[str]
-                    ]
-                ):
-            """Get a indicator of the OrderDF where the columns 'keepCols' are kept. And saves the new PandasDF
-
-            Args:
-                managerDF (ManagerDataframes): ManagerDataframe that should contain OrderDf, precense is validated within function.
-                keepCols (Union[str, list[str]]): columns to keep as indicators. Values within column must be 0/1 or False/True
-            """
-            # Obtain the ordersDF.
-            orderDF = managerDF.get_Dataframe('OrderDF').pandas_Dataframe.copy()
-            
-            # Get columns to drop.
-            drop_cols = [
-                col for col in orderDF.columns 
-                if col not in keepCols
-                ]
-            newDF = orderDF.drop(columns=drop_cols)
-
-            # Make Indicator: if value is True or 1 then True, else False.
-            newDF = (newDF == True) | (newDF == 1)
-            
-            self._pandas_Dataframe = newDF
-    
-    def columnBasedBuilder(
-            self, managerDF: 
-            ManagerDataframes, 
-            keepCols: Union[
-                str, 
-                list[str]
-                ]
-            ):
         pass
     
     ### COPYING TO NEW BASEDATAFRAME INSTANCE
@@ -331,6 +325,38 @@ class OrderDataframe(BaseDataframe):
             _read_fillna_value
             )
 
+    ### PROPERTIES: 
+    #NOTE: Using .setter might improve running time. 
+    #FIXME: Based on needs in models also 'clean' the return value, that is remove 'None' values in e.g. specific_line_df
+    
+    # Column Properties
+    @property
+    def time_req_df(self) -> pd.DataFrame:
+        return self._column_property_finder('time_req_df')
+    @property
+    def specific_line_df(self) -> pd.DataFrame:
+        return self._column_property_finder('specific_line_df')
+    @property
+    def dates_df(self) -> pd.DataFrame:
+        return self._column_property_finder('dates_df')
+    @property
+    def next_prev_suborder_df(self) -> pd.DataFrame:
+        return self._column_property_finder('next_prev_suborder_df')
+    @property
+    def revenue_df(self) -> pd.DataFrame:
+        return self._column_property_finder('revenue_df')
+    @property
+    def order_specific_df(self) -> pd.DataFrame:
+        return self._column_property_finder('order_specific_df')
+    @property
+    def percentage_df(self) -> pd.DataFrame:
+        return self._column_property_finder('percentage_df')
+    
+    # Indicator Properties
+    @property
+    def executed_on_line_df(self) -> pd.DataFrame:
+        return self._indicator_property_finder('executed_on_line_df')
+
     ### SUBCLASS SPECIFIC FUNCTIONS
     def clean(self):
         """Cleans the orders dataframe by changing all strings to uppercase and otherwise returning the element for the columns that need to be cleaned.
@@ -378,7 +404,24 @@ class OrderDataframe(BaseDataframe):
             elif pd.notna(element):
                 return element
     
+    def _column_property_finder(self, property_name: str) -> pd.DataFrame:
+        cols_to_keep = orderBased[property_name].keepCols
+        return self.pandas_Dataframe[cols_to_keep]
 
+    def _indicator_property_finder(self, property_name: str) -> pd.DataFrame:
+        cols_to_keep = orderBased[property_name].keepCols
+
+        # Get columns to drop.
+        drop_cols = [
+            col for col in self.pandas_Dataframe.copy().columns
+            if col not in cols_to_keep
+            ]
+        newDF = self.pandas_Dataframe.copy().drop(columns=drop_cols)
+
+        # Make indicator
+        newDF = (newDF == True) | (newDF == 1)
+
+        return newDF
 
 class IndexSetsDataframe(BaseDataframe):
     """The indexSetsDataframe is a class that is used to describe the IndexDF.
@@ -411,7 +454,6 @@ class IndexSetsDataframe(BaseDataframe):
             series=self._pandas_Dataframe['Orders_suborders'], 
             value_to_replace=''
             ).to_list()
-        ic(self._orders_suborder)
         self._orders = self._remove_values_from_series(
             series=self._pandas_Dataframe['Orders'], 
             value_to_replace=''
@@ -839,30 +881,7 @@ class PenaltyDataframe(BaseDataframe):
     
 
 
-#FIXME: check correctness.
 class IndicatorBuildDataframe(BaseDataframe):
-    def __init__(
-            self, 
-            _pandas_ExcelFile: pd.ExcelFile, 
-            _name_Dataframe: str, 
-            _name_ExcelSheet: str = None, 
-            _bool_read_df: bool = True, 
-            _bool_build_df: bool = False, 
-            _read_fillna_value=None
-            ) -> None:
-        super().__init__(
-            _pandas_ExcelFile, 
-            _name_Dataframe, 
-            _name_ExcelSheet, 
-            _bool_read_df, 
-            _bool_build_df, 
-            _read_fillna_value
-            )
-
-
-
-
-class ExecutedOnLineIndicatorDataframe(IndicatorBuildDataframe):
     def __init__(
             self, 
             _pandas_ExcelFile: pd.ExcelFile, 
@@ -883,18 +902,76 @@ class ExecutedOnLineIndicatorDataframe(IndicatorBuildDataframe):
 
     def build(
             self, 
-            managerDF: ManagerDataframes, 
+            managerDF: ManagerDataframes,  
             keepCols: Union[
                 str, 
                 list[str]
                 ]
-            ):
-        self.indicatorBuilder(managerDF=managerDF, keepCols=keepCols)
+        ):
+        """Get a indicator of the OrderDF where the columns 'keepCols' are kept. And saves the new PandasDF
+
+        Args:
+            managerDF (ManagerDataframes): ManagerDataframe that should contain OrderDf, precense is validated within function.
+            keepCols (Union[str, list[str]]): columns to keep as indicators. Values within column must be 0/1 or False/True
+        """
+        # Obtain the ordersDF.
+        orderDF = managerDF.get_Dataframe('OrderDF').pandas_Dataframe.copy()
+        
+        # Get columns to drop.
+        drop_cols = [
+            col for col in orderDF.columns
+            if col not in keepCols
+            ]
+        newDF = orderDF.drop(columns=drop_cols)
+
+        # Make Indicator: if value is True or 1 then True, else False.
+        newDF = (newDF == True) | (newDF == 1)
+        
+        self._pandas_Dataframe = newDF
 
 
 
-from dataclasses import dataclass
+class ColumnBuildDataframe(BaseDataframe):
+    def __init__(
+            self, 
+            _pandas_ExcelFile: pd.ExcelFile, 
+            _name_Dataframe: str, 
+            _name_ExcelSheet: str = None, 
+            _bool_read_df: bool = True,
+            _bool_build_df: bool = False, 
+            _read_fillna_value=None
+            ) -> None:
+        super().__init__(
+            _pandas_ExcelFile, 
+            _name_Dataframe, 
+            _name_ExcelSheet, 
+            _bool_read_df, 
+            _bool_build_df,
+            _read_fillna_value
+            )
+    
+    def build(
+            self, 
+            managerDF: ManagerDataframes,  
+            keepCols: Union[
+                str, 
+                list[str]
+                ]
+        ):
+        # Obtain the ordersDF.
+        orderDF = managerDF.get_Dataframe('OrderDF').pandas_Dataframe.copy()
+        
+        # Get columns to drop.
+        drop_cols = [
+            col for col in orderDF.columns
+            if col not in keepCols
+            ]
+        newDF = orderDF.drop(columns=drop_cols)
 
+        pass
+
+
+#TODO: Put me in the beginning of the file or in a config file. 
 @dataclass
 class ConfigBaseDataframe:
     """Class used to present a configuring for BaseDataframes.
@@ -952,7 +1029,7 @@ dfs = {
             build_df=True
             ),
         'ExecutedOnLineIndicatorDF': ConfigBaseDataframe(
-            class_type=ExecutedOnLineIndicatorDataframe,
+            class_type=IndicatorBuildDataframe,
             read_sheet=False,
             build_indicator_based=True,
             build_keep_columns=['On_line', 'Production_line_specific_line']
@@ -961,6 +1038,7 @@ dfs = {
     }        
 
 T = TypeVar('T', bound='BaseDataframe')
+
 class ManagerDataframes:
     """This class is used to store different dataframes. It can then be used to fetch or remove certain dataframes based on their name.
     """
@@ -1016,38 +1094,47 @@ class ManagerDataframes:
         for df in dfs_to_remove:
             del self.stored_Dataframes[df]
     
-    #FIXME: Works, but does not do the correct type hinting. So try to fix that, otherwise return to the previous way as it was more concise.
     def get_Dataframe(
             self,
             dfs_to_get: Union[list[str], str],
             check_pandasDF_presence: bool = True,
             check_clean_status: bool = True,
-            expected_return_type: type[T] = BaseDataframe # appears not to be used, but without it the typing does not work when using a result of get_Dataframe(). e.g. indexDF.time_intervals would not be suggested.
+            expected_return_type_input: type[T] = BaseDataframe # appears not to be used, but without it the typing does not work when using a result of get_Dataframe(). e.g. indexDF.time_intervals would not be suggested.
     ) -> Union[T, list[T]]:
         """Retrieves dataframe if it is present, if not raises a value error.
+        \n Use expected_return_type if you need to use specific attributes, when using the result of the dataframe that are not in the BaseDataframe.
 
         Args:
             dfs_to_get (Union[List[str], str]): df_name(s) to retrieve.
             check_pandasDF_presence (bool): Should a pandasDF be present in order to be retrieved. Defaults to True.
             check_clean_status (bool): Should a pandasDF be cleaned in order to be retrieved. Defaults to True.
-
+            expected_return_type_input (type[T]): The type the user expects the dataframe to be. Defaults to BaseDataframe
+        
         Returns:
             Union[BaseDataframe, List(BaseDataframe)]: Asked for BaseDataframe(s) (subclass)
         """
         def _check_dataframe_type(
                 dataframe: BaseDataframe, 
-                dataframe_location: int = 0
+                dataframe_location: int = 0,
+                expected_return_type_input: type[BaseDataframe] = expected_return_type_input
                 ):
             """Check whether the type is correct
 
             Args:
-                dataframe (BaseDataframe): _description_
+                dataframe (BaseDataframe): Dataframe to check type of
                 dataframe_location (int, optional): location of dataframe in dfs_to_get. Defaults to 0.
-
+                expected_return_type_input (type[BaseDataframe]): The type the user is expecting. Defaults to expected_return_type_input
             Raises:
                 TypeError: If the expected dataframe type is not equal to the actual dataframe type.
+                TypeError: If the 
             """
             expected_return_type = _get_expected_return_type(dfs_to_get[dataframe_location])
+            
+            if expected_return_type_input == BaseDataframe:
+                return
+            
+            if expected_return_type_input != expected_return_type:
+                raise TypeError(f"Expected dataframe of type: '{expected_return_type}'. But user expected dataframe of type: '{expected_return_type_input}' ")
             
             if not issubclass(type(dataframe), expected_return_type):
                 raise TypeError(f"Expected dataframe of type: '{expected_return_type}' \n "
@@ -1072,8 +1159,8 @@ class ManagerDataframes:
         
         if isinstance(dfs_to_get, str):
             return self.get_Dataframe(
-                dfs_to_get=[dfs_to_get],
-                expected_return_type=_get_expected_return_type(dfs_to_get)
+                dfs_to_get = [dfs_to_get],
+                expected_return_type_input = expected_return_type_input
                 )
 
         # Only validate if df has not yet been checked.
@@ -1087,10 +1174,13 @@ class ManagerDataframes:
                 check_clean_status=check_clean_status
             )
 
+        # If there is only one dataframe return the asked dataframe.
         if len(dfs_to_get) == 1:
             df = self.stored_Dataframes[dfs_to_get[0]]
             _check_dataframe_type(dataframe=df)
             return df
+
+        # If there are more than one dataframe, first retrieve all dataframes, then return the list of dataframes.
         else:
             dataframe_location = 0
             results = []
