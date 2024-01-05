@@ -10,7 +10,7 @@ from data.dataframe import Dataframe
 
 from general_configuration import dfs, old_planning_limit
 
-
+from typing import Union
 
 from data.data import (
     ManagerDataframes, 
@@ -834,6 +834,44 @@ class EWOptimisation:
             output: Output of the solver.
         """
         
+        def _solution_to_dataframe():
+            ### Turn the results into observable objects
+            solution_values = {(i, j, k): self.m.var_alloc[i, j, k].value for (i, j, k) in self.m.set_alloc_index}
+
+            index_values = [idx for idx in self.m.set_alloc_index]
+            index_names = ['order_suborder', 'time', 'empl_line']
+            column_names = ['order_suborder']
+
+            optimal_df = pd.Series(solution_values.values(), index=pd.MultiIndex.from_tuples(index_values, names=index_names))
+            #optimal_df = optimal_df.groupby(['time', 'order_suborder', 'empl_line'])
+
+            optimal_df = optimal_df[optimal_df != 0] # Only keep rows which have non zero values -> an allocation.
+
+            optimal_df.name = 'allocation'
+            
+            return optimal_df
+        
+        def _variable_to_dataframe(
+                variable: type[pyo.Var],
+                variable_names: Union[str, list[str]] = None
+                ):
+            var_dict = {i: variable[i].value for i in variable}
+
+            df = pd.DataFrame(data=var_dict.values(), index=var_dict.keys())
+            df = df[df != 0.0].dropna()
+
+            if isinstance(variable_names, str):
+                if len(df.columns) == 1:
+                    df.columns = variable_names
+                else:
+                    raise ValueError(f"_variable_to_dataframe() expected variable_names of quantitiy: '{len(df.columns)}', but got only one name: '{variable_names}'")
+            if len(df.columns) == len(variable_names):
+                df.columns = variable_names
+            else:
+                raise ValueError(f"_variable_to_dataframe() expected variable_names of quantitiy: '{len(df.columns)}', but got quantity: '{len(variable_names)}'. The names it got where: '{variable_names}'")
+
+            return df
+
         # Check whether the model has been formulated
         if not self.model_created: 
             import sys
@@ -850,36 +888,23 @@ class EWOptimisation:
 
         # Solve the problem
         results = solver.solve(self.m)
-        print(results)
+        ic(results)
         
-        ### Turn the results into observable objects
-        solution_values = {(i, j, k): self.m.var_alloc[i, j, k].value for (i, j, k) in self.m.set_alloc_index}
+        ### Obtain a pd.DataFrame version of the solutions.
+        self.solution = _solution_to_dataframe()
 
-        index_values = [idx for idx in self.m.set_alloc_index]
-        index_names = ['order_suborder', 'time', 'empl_line']
-        column_names = ['order_suborder']
-
-        optimal_df = pd.Series(solution_values.values(), index=pd.MultiIndex.from_tuples(index_values, names=index_names))
-        #optimal_df = optimal_df.groupby(['time', 'order_suborder', 'empl_line'])
-
-        ### Obtain a short version of the solutions.
-        self.solution = optimal_df
-        self.short_solution = self.solution.copy()[(self.solution!=0)]#.any(axis=1)] # Only keep rows which have non zero values -> an allocation.
-        self.short_solution.name = 'allocation'
-
-        # Create the corresponding 'Dataframe' object, and change the corresponding pandas_dataframe.
+        # Change the corresponding 'pd.DataFrame' of the solutionDF.
         self.managerDF.get_Dataframe('SolutionDF').pandas_Dataframe = self.short_solution
-        
+         
         print(self.short_solution)
 
-        # Obtain a dataframe with the gaps in the planning.
-        gap_values = {(i, j): self.m.var_gaps[(i, j)].value for (i, j) in self.m.set_gaps_index}
-        index_values = [idx for idx in self.m.set_gaps_index]
+        var_val = [value(self.m.var_gaps[i]) for i in self.m.x]
+        df = pd.DataFrame({'var_gaps': var_val})
 
-        gaps_df = pd.Series(gap_values.values(), index=pd.MultiIndex.from_tuples(index_values, names=['order_suborder', 'time']))
-        gaps_df = gaps_df[(gaps_df!=0)]
-        gaps_df.name = 'gaps'
-        print(gaps_df)
+        print(df)
+
+        _variable_to_dataframe(variable=self.m.var_gaps, index=self.m.set_gaps_index)
+        
 
         return results
     
