@@ -870,6 +870,31 @@ class EWOptimisation:
         gaps_df.name = 'gaps'
         print(gaps_df)
 
+        var_val = {i: self.m.var_gaps[i].value for i in self.m.var_gaps}
+        #print(var_val)
+        #var_val = var_val[var_val != 0.0]
+        df = pd.DataFrame(index=var_val.keys(), data=var_val.values())
+        print(df)
+        df = df[df != 0.0].dropna()
+        print(df)
+        
+        ic(self.m.set_time.getname())
+
+        setta = list(self.m.set_alloc_index.index_set().subsets())
+        ic(setta)
+        for subset in setta:
+            ic(list(subset))
+            ic(subset.name)
+        
+        namese = (self.m.set_order_suborder.name, self.m.set_time.name, self.m.set_employee_line.name)
+        ic(namese)
+        
+        self.m.set_alloc_index = namese
+        self.m.var123 = pyo.Var(self.m.set_alloc_index, domain=pyo.Binary)
+        
+        ic(self.m.set_alloc_index.name)
+        
+
         return results
     
     #FIXME:
