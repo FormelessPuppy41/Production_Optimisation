@@ -99,7 +99,7 @@ class SolvabilityTest:
                 try:
                     check()
                 except Exception as e: 
-                    self.failed_checks.append(ic(e))
+                    self.failed_checks.append(e)
 
             if self.failed_checks:
                 number_of_failed_checks = len(self.failed_checks)

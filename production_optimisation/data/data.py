@@ -12,8 +12,7 @@ from typing import Union, TypeVar
 
 from dataclasses import dataclass
 
-from gen_config import dfs, orderBased
-
+T = TypeVar('T', bound='BaseDataframe')
 
 class BaseDataframe:
     """The basic methods and attributes for a Dataframe. They are further specified in their own subclass.
@@ -297,6 +296,9 @@ class OrderDataframe(BaseDataframe):
             _read_fillna_value
             )
         
+        from gen_config import orderBased
+        self.orderBased = orderBased
+        
         self._specific_order = None
         self._specific_suborder = None
 
@@ -443,7 +445,7 @@ class OrderDataframe(BaseDataframe):
     def _column_property_finder(self, property_name: str) -> pd.DataFrame:
         # Obtain the property value only if the corresponding variable is empty
         if getattr(self, f'_{property_name}', None) is None:
-            cols_to_keep = orderBased[property_name].keepCols
+            cols_to_keep = self.orderBased[property_name].keepCols
             property_value = self._pandas_Dataframe[cols_to_keep]
 
             # Set the corresponding variable dynamically
@@ -457,7 +459,7 @@ class OrderDataframe(BaseDataframe):
 
     def _indicator_property_finder(self, property_name: str) -> pd.DataFrame:
         if getattr(self, f"_{property_name}", None) is None:
-            cols_to_keep = orderBased[property_name].keepCols
+            cols_to_keep = self.orderBased[property_name].keepCols
 
             # Get columns to drop.
             drop_cols = [
@@ -483,7 +485,7 @@ class OrderDataframe(BaseDataframe):
     def _set_column_property(self, property_name: str, value):
         # Implement any necessary validation or processing here
         # For now, assuming 'value' is a valid replacement for the property
-        self.pandas_Dataframe[orderBased[property_name].keepCols] = value
+        self.pandas_Dataframe[self.orderBased[property_name].keepCols] = value
 
 
 class IndexSetsDataframe(BaseDataframe):
@@ -994,39 +996,16 @@ class PenaltyDataframe(BaseDataframe):
 class SolutionDataframe(BaseDataframe):
     pass
 
-#TODO: Put me in the beginning of the file or in a config file. 
-@dataclass
-class ConfigBaseDataframe:
-    """Class used to present a configuring for BaseDataframes.
-    """
-    excelFile: pd.ExcelFile = None
-    name_excel_sheet: str = None
-    class_type: type[BaseDataframe] = BaseDataframe
 
-    read_sheet: bool = True
-    read_fillna_value: Union[None, any] = None
-    
-    build_df: bool = False
-
-#TODO: Add main() in parts to data.py
-# dfs in beginning file or import from gen.config
-
-
-excelFileRead = pd.ExcelFile(
-    "/Users/gebruiker/Documents/GitHub/Production_Optimisation/production_optimisation/EW_Optimisation.xlsm", 
-    engine='openpyxl'
-    )
-excelFileSolution = pd.ExcelFile(
-    "/Users/gebruiker/Documents/GitHub/Production_Optimisation/production_optimisation/EW_Optimisation.xlsm", 
-    engine='openpyxl'
-    )
-
-T = TypeVar('T', bound='BaseDataframe')
 
 class ManagerDataframes:
     """This class is used to store different dataframes. It can then be used to fetch or remove certain dataframes based on their name.
     """
     def __init__(self) -> None:
+        from gen_config import dfs
+        
+        self.dfs = dfs
+
         self.stored_Dataframes = {}
 
         self.validated_dfs = {}
@@ -1043,6 +1022,7 @@ class ManagerDataframes:
         Args:
             dataframe_to_store (Union[ BaseDataframe, list, optional): Dataframe(s) to store. Defaults to None.
         """
+        #TODO: Also add to validated. 
         if dataframe_to_store:
             if isinstance(dataframe_to_store, list):
                 for df in dataframe_to_store:
@@ -1141,10 +1121,10 @@ class ManagerDataframes:
             Returns:
                 type[T]: Expected class_type of the Dataframe.
             """
-            if df_name not in dfs.keys():
-                raise KeyError(f"The dataframe name: '{df_name}', was not found in the keys of the 'dfs' dictionairy: \n \n '{dfs}'")
+            if df_name not in self.dfs.keys():
+                raise KeyError(f"The dataframe name: '{df_name}', was not found in the keys of the 'dfs' dictionairy: \n \n '{self.dfs}'")
             
-            return dfs[df_name].class_type
+            return self.dfs[df_name].class_type
         
         if isinstance(dfs_to_get, str):
             return self.get_Dataframe(
@@ -1189,7 +1169,7 @@ class ManagerDataframes:
     def process_data(self):
         """Reads the data from the dictionairy containing specific configurations for each dataframe and cleans and stores them.
         """
-        for name, config in dfs.items():
+        for name, config in self.dfs.items():
             # Unpack the configuration of individual dataframes.
             excelFile = config.excelFile
             sheet_name = config.name_excel_sheet
@@ -1276,7 +1256,7 @@ class ManagerDataframes:
                 key, 
                 ):
             try:
-                self._check_name_in_StoredDataframes(_name_Dataframe=name_df)
+                self._check_name_in_StoredDataframes(name_Dataframe=name_df)
                 self.validated_dfs[name_df] = self.stored_Dataframes[name_df]
                 found_dfs.append(name_df)
 
@@ -1298,7 +1278,7 @@ class ManagerDataframes:
                 __handle_exception(name_df, key, e)
             except Exception as e:
                 __handle_exception(name_df, key, e)
-
+        
         if isinstance(dfs_to_check, str):
             dfs_to_check = [dfs_to_check]
 
@@ -1318,10 +1298,14 @@ class ManagerDataframes:
 
         if errors:
             raise AttributeError(
-                f"While validating the presence of (a) dataframe(s), one or more errors have occurred: \n {', '.join(f'{key}' for key in errors.keys())} \n\n The following things did not go as expected: \n{incorrect}. \n\n The following things did go as expected: \n {correct}"
+                f"While validating the presence of (a) dataframe(s), one or more errors have occurred: \n\n {', '.join(f'{key}' for key in errors.keys())}: {','.join(f'{e}' for e in errors.values())} \n\n The following things did not go as expected: \n{incorrect}. \n\n The following things did go as expected: \n {correct}"
             )
         
-    def _check_name_in_StoredDataframes(self, name_Dataframe: str, should_be_stored: bool = True):
+    def _check_name_in_StoredDataframes(
+            self, 
+            name_Dataframe: str, 
+            should_be_stored: bool = True
+            ):
         """Checks whether a name is in the stored dataframes, if not it raises an error and suggests all possible names, but also indicates if there is a name with the same spelling but with different cases, like name and naMe. 
 
         Use should_be_stored to differentiate between checking for name presence in stored dfs vs checking if name is not presence in stored dfs. The difference is that in the first case you can 'get' the existing dataframe, and in the second case you can 'store' a new dataframe.
@@ -1334,18 +1318,21 @@ class ManagerDataframes:
             ValueError: If the name cannot be found, suggests other names.
         """
         if should_be_stored:
-            if name_Dataframe in self.stored_Dataframes:
+            if name_Dataframe in self.stored_Dataframes.keys():
                 pass
             
             else:
                 suggested_similar_names =  self._suggest_names_similar(name=name_Dataframe)
                 suggested_all_names = self._suggest_names_all()
+                
                 raise ValueError(f"The given name '{name_Dataframe}' cannot be found in the stored names. \n Did you mean one of these: {', '.join(suggested_similar_names)}? \n\n If not, select one of the saved names: {', '.join(suggested_all_names)}")
         
         else:
-            if name_Dataframe in self.stored_Dataframes:
+            if name_Dataframe in self.stored_Dataframes.keys():
                 raise ValueError(f"The given dataframe name: f'{name_Dataframe}', already has an instance in the ManagerDataframes object. So, it cannot be stored under this name. \n\n If you want to store a new pd.DataFrame instance, use BaseDataframe.pandas_dataframe = new_instance.")
-    
+            else:
+                pass
+
     def _suggest_names_similar(self, name: str):
         """Gives the name suggestion for names that have the same letters, but different cases. 
         \n e.g. It would return 'name', if 'name' is a stored df_name, for ['Name', 'nAme', 'NAME', etc.]
