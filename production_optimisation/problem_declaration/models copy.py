@@ -39,65 +39,50 @@ class EWOptimisation:
         """
         self.managerDF = managerDF 
 
-        # Obtain specific DF's
-        self.orderDF = self.managerDF.get_Dataframe('OrderDF', expected_return_type_input=OrderDataframe)
-        self.indexDF = self.managerDF.get_Dataframe('IndexDF', expected_return_type_input=IndexSetsDataframe)
-        
-        
-        # Get from solutionDF
-        self.excel_file = self.managerDF.get_Dataframe('SolutionDF').pandas_ExcelFile  # All dataframes come from the same file. That is why it simply selects the first dataframe and gets the excelfile. 
-
         self.model_created : bool = False
 
         self.solution = pd.DataFrame()
         self.short_solution = pd.DataFrame()
 
         self.initialized_EWOptimisation = True
-        
-    def createModel(self):
-        """Creates the pyomo model that optimizes the production planning for EW. \n
 
-        THE OBJECTIVE FUNCTION:
-            MINIMIZE: ALLOCATION * PENALTY + 400 * VAR_GAPS + 400 * VAR_BEFORE
-            
-            THAT IS:
-                THE PENALTY FOR ALLOCATING A CERTAIN ORDER AT A SPECIFIC TIME \n
-                + 400 * EACH GAP INSIDE INDIVIDUAL ORDER SCHEDULES \n
-                + 40 * EACH TIME THAT AN ORDER HAS NOT STARTED YET
-        \n\n
-        THE CONSTRAINTS:
-                RULES THAT IMPLEMENT ORDER_SUBORDER SPECIFICS \n
-            REQUIRED HOURS MUST BE SCHEDULED FOR AN ORDER_SUBORDER \n
 
-                RULES THAT IMPLEMENT EMPLOYEE_LINE SPECIFICS \n
-            EMPLOYEE_LINE ONLY ALLOCATED ONCE PER TIME \n
-            EMPLOYEE_LINE ONLY ALLOWED TO PERFORM SUBORDER IF SKILLED. \n
-            EMPLOYEE_LINE ONLY ALLOWED ALLOCATED IF AVAILABLE. \n\n
-
-                RULES THAT IMPLEMENT THAT NEXT SUBORDERS CANNOT BE STARTED BEFORE PREVIOUS SUBORDER IS COMPLETED (FOR ATLEAST X%) \n
-            PREVIOUS SUBORDER MUST BE COMPLETED FOR ATLEAST X% \n
-            PREVIOUS SUBORDER MUST BE COMPLETED FOR A LARGER PERCENTAGE THAN THE NEXT SUBORDER \n\n
-
-                RULES THAT IMPLEMENT THAT ORDERS ARE ALLOCATED ONLY TO SPECIFIC (TYPE OF) LINES OF EMPLOYEES. \n
-            LINE ORDERS ALLOCATED TO LINES \n
-            SPECIFIC LINE ORDERS ALLOCATED TO THE SPECIFIC LINE \n
-            MANUAL ORDERS ALLOCATED TO EMPLOYEES \n\n
-
-                RULES THAT IMPLEMENT THE OLD- AND MANUAL PLANNING. \n
-            OLD PLANNING // currently inactive, but indirectly active via 'COMBINED PLANNING' \n
-            MANUAL PLANNING // currently inactive, but indirectly active via 'COMBINED PLANNING' \n
-            COMBINED PLANNING \n\n
-
-                RULES THAT IMPLEMENT THE GAPS IDENTIFICATION. \n
-            BEFORE INDICATES IF THE ORDER_SUBORDER HAS BEEN ALLOCATED BEFORE SPECIFIC TIME \n
-            AFTER INDICATES IF THE ORDER_SUBORDER HAS BEEN ALLOCATED AFTER A SPECIFIC TIME \n
-            DURING INDICATES IF AT A CERTAIN TIME THE ORDER HAS BEEN STARTED AND HAS NOT YET BEEN FINISHED, THUS INDICATES ALL TIME INTERVALS BETWEEN START AND FINISH OF ORDER \n
-            GAPS INDICATES IF BETWEEN THE START AND FINISH TIMES OF AN ORDER_SUBORDER, THE IS AN NOT ALLOCATION AT A CERTAIN TIME. THAT IS, THERE IS A GAP IN THE SCHEDULE. 
-
+    def _retrieve_dfs_from_managerDF(self):
         """
-        self.m = pyo.ConcreteModel()
+        Retrieve the dataframes containing the (manipulated) data from excel.
+    
+        Includes:
 
-        ### Retrieving data
+        OrderDF, IndexDF, \n
+        SkillsDF, AvailabilityDF, \n
+        PenaltyDF, \n
+        OldPlanningDF, ManualPlanningDF, CombinedPlanningDF, \n
+        SolutionDF\n
+        """
+        ### Retrieve the dataframes containing the (manipulated) data from excel.
+        # Retrieve OrderDF and IndexDF
+        self.orderDF = self.managerDF.get_Dataframe('OrderDF', expected_return_type_input=OrderDataframe)
+        self.indexDF = self.managerDF.get_Dataframe('IndexDF', expected_return_type_input=IndexSetsDataframe)
+        
+        # Retrieve configurations
+        self.skills_df = self.managerDF.get_Dataframe('SkillsDF').pandas_Dataframe
+        self.availability_df = self.managerDF.get_Dataframe('AvailabilityDF').pandas_Dataframe
+        
+        # Retrieve penalties
+        self.penalty_df = self.managerDF.get_Dataframe('PenaltyDF').pandas_Dataframe
+        
+        # Retrieve planning data
+        self.old_planning_df = self.managerDF.get_Dataframe('OldPlanningDF').pandas_Dataframe
+        self.manual_planning_df = self.managerDF.get_Dataframe('ManualPlanningDF').pandas_Dataframe
+        self.combined_planning_df = self.managerDF.get_Dataframe('CombinedPlanningDF').pandas_Dataframe
+
+        # Get from solutionDF
+        self.excel_file = self.managerDF.get_Dataframe('SolutionDF').pandas_ExcelFile 
+
+
+    def _retrieve_indexDF_data(self):
+        """Retrieves the index sets from IndexDF and stores them. 
+        """
         # Retrieve sets/lists
         self.list_order_suborder = self.indexDF.order_suborder
         self.list_suborder_set = self.indexDF.suborders
@@ -106,6 +91,10 @@ class EWOptimisation:
         self.list_employee = self.indexDF.employee
         self.list_line = self.indexDF.line
 
+
+    def _retrieve_orderDF_data(self):
+        """Retrieves the column data from the OrderDF. 
+        """
         # Retrieve dataframes that represent specific columns of the 'order_df'. 
         self.dates_df = self.orderDF.dates_df
         self.revenue_df = self.orderDF.revenue_df
@@ -113,35 +102,27 @@ class EWOptimisation:
         self.specific_order_suborder = self.orderDF.specific_order_df
         self.specific_line_df = self.orderDF.specific_line_df
         self.exec_on_line_df = self.orderDF.executed_on_line_df
+        self.suborders_df = self.orderDF.next_prev_suborder_df
+        self.percentage_df = self.orderDF.percentage_df
 
-        # Obtain series of the above mentioned df's for easy usage throughout this file.
+        # FIXME: change this to properties of the df.
+        # Retrieve series of the above mentioned df's for easy usage throughout this file.
         self.date_start = self.dates_df.iloc[:, 0]
         self.date_deadline = self.dates_df.iloc[:, 1]
         self.revenue = self.revenue_df.iloc[:, 0]
-        time_req_lb = self.time_req_df.iloc[:, 0]
-        time_req_ub = self.time_req_df.iloc[:, 1]
-
-        # Retrieve the dataframes containing the (manipulated) data from excel.
-        self.skills_df = self.managerDF.get_Dataframe('SkillsDF').pandas_Dataframe
-        self.availability_df = self.managerDF.get_Dataframe('AvailabilityDF').pandas_Dataframe
+        self.time_req_lb = self.time_req_df.iloc[:, 0]
+        self.time_req_ub = self.time_req_df.iloc[:, 1]
         
-        self.penalty_df = self.managerDF.get_Dataframe('PenaltyDF').pandas_Dataframe
-        
-        self.suborders_df = self.orderDF.next_prev_suborder_df
-        self.percentage_df = self.orderDF.percentage_df
-        
-        self.old_planning_df = self.managerDF.get_Dataframe('OldPlanningDF').pandas_Dataframe
-        self.manual_planning_df = self.managerDF.get_Dataframe('ManualPlanningDF').pandas_Dataframe
-        self.combined_planning_df = self.managerDF.get_Dataframe('CombinedPlanningDF').pandas_Dataframe
-
         # Create dataframe where unique_code can be looked for by using specific order and suborder. (order, suborder) -> (order_suborder)
             # FIXME: NOTE This can be made a 'specific' function if we implement subclasses of the dataframe class, like it is stated in the todo's
             # RENAME: reverseSearch_specific_order_suborder?!
         transpose_specific_order_suborder = self.specific_order_suborder.copy()
         transpose_index = self.specific_order_suborder.columns.to_list()
         transpose_specific_order_suborder.reset_index(inplace=True)
-        transpose_specific_order_suborder.set_index(transpose_index, inplace=True)
+        self.transpose_specific_order_suborder = transpose_specific_order_suborder.set_index(transpose_index, inplace=True)
 
+
+    def _create_pyomo_sets(self):
         ### Create needed sets, variables and parameters for the model.
         # Create sets for the model
         self.m.set_order_suborder = pyo.Set(initialize=self.list_order_suborder, name='set_order_suborder', doc='Set of all combinations of orders and suborders')
@@ -153,13 +134,16 @@ class EWOptimisation:
         self.m.set_alloc_index = pyo.Set(initialize=self.m.set_order_suborder * self.m.set_time * self.m.set_employee_line)
         self.m.set_gaps_index = pyo.Set(initialize=self.m.set_order_suborder * self.m.set_time)
 
+
+    def _create_pyomo_upperbounds(self):
         # Create the upperbounds for constraints in the model.
         self.upperbound = len(self.m.set_order_suborder) * len(self.m.set_time) * len(self.m.set_employee_line)
         self.m.upperbound_of_employee = len(self.m.set_employee_line)
         self.m.upperbound_of_time = len(self.m.set_time)
         self.m.upperbound_of_employees_and_time = len(self.m.set_employee_line) * len(self.m.set_time)
-    
-        # Create variables for the model
+
+
+    def _create_pyomo_variables(self):
         self.m.var_alloc = pyo.Var(self.m.set_alloc_index, domain=pyo.Binary, name='var_alloc', doc="Represents the allocation of order_suborder's at a specific time, performed by an employee_line") 
 
         self.m.var_indicator_alloc_sum_employee_line = pyo.Var(self.m.set_gaps_index, domain=pyo.Binary, name='var_indicator_alloc_sum_employee_line', doc='Represents an allocator that has value 1 when at least one employee_line has been scheduled else value 0')
@@ -172,47 +156,8 @@ class EWOptimisation:
         self.m.var_during = pyo.Var(self.m.set_gaps_index, domain=pyo.Binary, name='var_gaps_during', doc="Represents the entire period that an order_suborder is scheduled, from start till finish. (var_alloc only gives allocated combination value 1, this also gives combination inbetween start and finish that represent a 'gap' value 1)")
         self.m.var_gaps = pyo.Var(self.m.set_gaps_index, domain=pyo.Binary, name='var_gaps', doc="Represents all the gaps that an order_suborder allocation has.")
 
-        #FIXME: MAKE A CORRECT OBJECTIVE FUNCTION THAT PRIORITIZES THE MOST IMPORTANT ORDERS.
-        # Create objective function
-        def rule_objectiveFunction(m):
-            """This rule minimizes the penalty that allocation get, but also the gaps inside an allocation, that is minimize the amount of gaps between the starting and ending time interval of the order_suborder and \n minimizes the gaps before an allocation, so between the startdate of the timeline and the first allocation of the order_suborder.
 
-            Minimizes: 
-            [allocation * penalty_df](per order_suborder, time, employee_line) # penalty to schedule a certain order at a specific time.
-            +
-            400 * [gaps](order_suborder, time) # penalty for the entire allocation between the start and end date. 
-            +
-            40 * [1- before](order_suborder, time) # penalty for leaving a gap between the startdate of the timeline and the first allocation of the order_suborder.
-
-            Args:
-                m (pyo.ConcreteModel()): pyomo model
-
-            Returns:
-                float: The total penalty, does not represent a 'true' value. 
-            """
-            penalty = \
-                sum(
-                    m.var_alloc[i, j, k] * self.penalty_df.loc[j, i]
-                    for i in m.set_order_suborder
-                    for j in m.set_time
-                    for k in m.set_employee_line
-                ) + \
-                sum(
-                    m.var_gaps[(i, j)] * 400
-                    for i in m.set_order_suborder
-                    for j in m.set_time
-                ) + \
-                sum(
-                    (1 - m.var_before[(i, j)]) * 40
-                    for i in m.set_order_suborder
-                    for j in m.set_time
-                )
-            
-            return penalty
-        self.m.objectiveFunction = pyo.Objective(rule=rule_objectiveFunction(self.m), sense=pyo.minimize)
-
-        ### Create Constraints
-
+    def _create_pyomo_constraints(self):
         ### RULES THAT IMPLEMENT ORDER_SUBORDER SPECIFICS
         # REQUIRED HOURS MUST BE SCHEDULED FOR AN ORDER_SUBORDER
         def rule_requiredPlannedHours(m, i):
@@ -228,13 +173,13 @@ class EWOptimisation:
                 Expression: time_req_lb <= allocation(sum over time and employee_line) <= req_time_up
             """
             return (
-                time_req_lb.loc[i],
+                self.time_req_lb.loc[i],
                 sum(
                     m.var_alloc[(i, j, k)] 
                     for j in m.set_time 
                     for k in m.set_employee_line
                 ),
-                time_req_ub.loc[i]
+                self.time_req_ub.loc[i]
             )
         self.m.constr_required_planned_hours = pyo.Constraint(self.m.set_order_suborder, rule=rule_requiredPlannedHours)
 
@@ -324,7 +269,7 @@ class EWOptimisation:
             while prev_suborder_index > 0:
                 prev_suborder = self.list_suborder_set[prev_suborder_index]
                 try:
-                    prev_order_suborder = transpose_specific_order_suborder.loc[order, prev_suborder].iloc[0]
+                    prev_order_suborder = self.transpose_specific_order_suborder.loc[order, prev_suborder].iloc[0]
                     break # valid previous suborder found
                 except KeyError:
                     prev_order_suborder = None
@@ -348,7 +293,7 @@ class EWOptimisation:
             Returns:
                 Expression: allocation(sum over {t} if {t} < time j and over employee_line) / time_required_lb
             """
-            if time_req_lb.loc[i] == 0:
+            if self.time_req_lb.loc[i] == 0:
                 return 0
             else:
                 ratio = sum(
@@ -356,7 +301,7 @@ class EWOptimisation:
                     for ti_j in m.set_time 
                     for empl_line_i in m.set_employee_line
                     if ti_j < j
-                    ) / time_req_lb.loc[i] # Total amount of allocated hours of the previous suborder devided by the lowerbound of required time. The lowerbound is taken, since the upperbound could result in the fraction never reaching 1. Opposite of that, lowerbound could mean that the fraction reaches 1 prematurely
+                    ) / self.time_req_lb.loc[i] # Total amount of allocated hours of the previous suborder devided by the lowerbound of required time. The lowerbound is taken, since the upperbound could result in the fraction never reaching 1. Opposite of that, lowerbound could mean that the fraction reaches 1 prematurely
             
                 return ratio
 
@@ -820,6 +765,103 @@ class EWOptimisation:
             except:
                 return pyo.Constraint.Skip
         self.m.gaps_gaps3 = pyo.Constraint(self.m.set_order_suborder, self.m.set_time, rule=rule_gaps_gaps3)
+
+
+    def _create_pyomo_objective(self):
+        #FIXME: MAKE A CORRECT OBJECTIVE FUNCTION THAT PRIORITIZES THE MOST IMPORTANT ORDERS.
+        # Create objective function
+        def rule_objectiveFunction(m):
+            """This rule minimizes the penalty that allocation get, but also the gaps inside an allocation, that is minimize the amount of gaps between the starting and ending time interval of the order_suborder and \n minimizes the gaps before an allocation, so between the startdate of the timeline and the first allocation of the order_suborder.
+
+            Minimizes: 
+            [allocation * penalty_df](per order_suborder, time, employee_line) # penalty to schedule a certain order at a specific time.
+            +
+            400 * [gaps](order_suborder, time) # penalty for the entire allocation between the start and end date. 
+            +
+            40 * [1- before](order_suborder, time) # penalty for leaving a gap between the startdate of the timeline and the first allocation of the order_suborder.
+
+            Args:
+                m (pyo.ConcreteModel()): pyomo model
+
+            Returns:
+                float: The total penalty, does not represent a 'true' value. 
+            """
+            penalty = \
+                sum(
+                    m.var_alloc[i, j, k] * self.penalty_df.loc[j, i]
+                    for i in m.set_order_suborder
+                    for j in m.set_time
+                    for k in m.set_employee_line
+                ) + \
+                sum(
+                    m.var_gaps[(i, j)] * 400
+                    for i in m.set_order_suborder
+                    for j in m.set_time
+                ) + \
+                sum(
+                    (1 - m.var_before[(i, j)]) * 40
+                    for i in m.set_order_suborder
+                    for j in m.set_time
+                )
+            
+            return penalty
+        self.m.objectiveFunction = pyo.Objective(rule=rule_objectiveFunction(self.m), sense=pyo.minimize)
+
+
+    def createModel(self):
+        """Creates the pyomo model that optimizes the production planning for EW. \n
+
+        THE OBJECTIVE FUNCTION:
+            MINIMIZE: ALLOCATION * PENALTY + 400 * VAR_GAPS + 400 * VAR_BEFORE
+            
+            THAT IS:
+                THE PENALTY FOR ALLOCATING A CERTAIN ORDER AT A SPECIFIC TIME \n
+                + 400 * EACH GAP INSIDE INDIVIDUAL ORDER SCHEDULES \n
+                + 40 * EACH TIME THAT AN ORDER HAS NOT STARTED YET
+        \n\n
+        THE CONSTRAINTS:
+                RULES THAT IMPLEMENT ORDER_SUBORDER SPECIFICS \n
+            REQUIRED HOURS MUST BE SCHEDULED FOR AN ORDER_SUBORDER \n
+
+                RULES THAT IMPLEMENT EMPLOYEE_LINE SPECIFICS \n
+            EMPLOYEE_LINE ONLY ALLOCATED ONCE PER TIME \n
+            EMPLOYEE_LINE ONLY ALLOWED TO PERFORM SUBORDER IF SKILLED. \n
+            EMPLOYEE_LINE ONLY ALLOWED ALLOCATED IF AVAILABLE. \n\n
+
+                RULES THAT IMPLEMENT THAT NEXT SUBORDERS CANNOT BE STARTED BEFORE PREVIOUS SUBORDER IS COMPLETED (FOR ATLEAST X%) \n
+            PREVIOUS SUBORDER MUST BE COMPLETED FOR ATLEAST X% \n
+            PREVIOUS SUBORDER MUST BE COMPLETED FOR A LARGER PERCENTAGE THAN THE NEXT SUBORDER \n\n
+
+                RULES THAT IMPLEMENT THAT ORDERS ARE ALLOCATED ONLY TO SPECIFIC (TYPE OF) LINES OF EMPLOYEES. \n
+            LINE ORDERS ALLOCATED TO LINES \n
+            SPECIFIC LINE ORDERS ALLOCATED TO THE SPECIFIC LINE \n
+            MANUAL ORDERS ALLOCATED TO EMPLOYEES \n\n
+
+                RULES THAT IMPLEMENT THE OLD- AND MANUAL PLANNING. \n
+            OLD PLANNING // currently inactive, but indirectly active via 'COMBINED PLANNING' \n
+            MANUAL PLANNING // currently inactive, but indirectly active via 'COMBINED PLANNING' \n
+            COMBINED PLANNING \n\n
+
+                RULES THAT IMPLEMENT THE GAPS IDENTIFICATION. \n
+            BEFORE INDICATES IF THE ORDER_SUBORDER HAS BEEN ALLOCATED BEFORE SPECIFIC TIME \n
+            AFTER INDICATES IF THE ORDER_SUBORDER HAS BEEN ALLOCATED AFTER A SPECIFIC TIME \n
+            DURING INDICATES IF AT A CERTAIN TIME THE ORDER HAS BEEN STARTED AND HAS NOT YET BEEN FINISHED, THUS INDICATES ALL TIME INTERVALS BETWEEN START AND FINISH OF ORDER \n
+            GAPS INDICATES IF BETWEEN THE START AND FINISH TIMES OF AN ORDER_SUBORDER, THE IS AN NOT ALLOCATION AT A CERTAIN TIME. THAT IS, THERE IS A GAP IN THE SCHEDULE. 
+
+        """
+        self.m = pyo.ConcreteModel()
+
+        ### Retrieving data
+
+        ### Create sets
+
+        ### Create upperbounds
+        
+        ### Create variables for the model
+        
+        ### Create objective function
+        
+        ### Create constraints
 
         self.model_created = True
     
