@@ -20,29 +20,67 @@ class ConfigOrderBased:
     keepCols: Union[list[str], str]
 
 orderBased = {
-    'time_req_df': ConfigOrderBased(
-        keepCols=['Time_hours_lowerbound', 'Time_hours_upperbound']
-    ), 
-    'specific_line_df': ConfigOrderBased(
-        keepCols=['Production_line_specific_line']
-    ), 
-    'dates_df': ConfigOrderBased(
-        keepCols=['Date_start', 'Date_deadline']
-    ), 
-    'next_prev_suborder_df': ConfigOrderBased(
-        keepCols=['Previous_sub_order', 'Next_sub_order']
-    ), 
-    'revenue_df': ConfigOrderBased(
-        keepCols=['Revenue']
-    ), 
-    'specific_order_df': ConfigOrderBased(
+    # Order/Suborder
+    # Specific Components
+    'specific_order': ConfigOrderBased(
+        keepCols=['Order_number']
+    ),
+    'specific_suborder': ConfigOrderBased(
+        keepCols=['Sub_order']
+    ),
+    'specific_order_suborder': ConfigOrderBased(
         keepCols=['Order_number', 'Sub_order']
     ), 
-    'percentage_df': ConfigOrderBased(
+
+    # Next/previous suborder
+    'next_suborder': ConfigOrderBased(
+        keepCols=['Next_sub_order']
+    ),
+    'prev_suborder': ConfigOrderBased(
+        keepCols=['Previous_sub_order']
+    ),
+
+    # Requirements of completion
+    'prev_completed_percentage': ConfigOrderBased(
         keepCols=['Percentage_prev_sub_order_needed_before_next_sub_order']
     ), 
-    'executed_on_line_df': ConfigOrderBased(
+
+    # Date/Time requirements
+    # Required time
+    'time_req_lowerbound': ConfigOrderBased(
+        keepCols=['Time_hours_lowerbound']
+    ), 
+    'time_req_upperbound': ConfigOrderBased(
+        keepCols=['Time_hours_upperbound']
+    ),
+    # Required dates
+    'dates_start': ConfigOrderBased(
+        keepCols=['Date_start']
+    ), 
+    'dates_deadline': ConfigOrderBased(
+        keepCols=['Date_deadline']
+    ), 
+
+    # Specific order information
+    # Executed on line
+    'executed_on_line': ConfigOrderBased(
         keepCols=['On_line']
+    ),
+    # Required line
+    'specific_line': ConfigOrderBased(
+        keepCols=['Production_line_specific_line']
+    ), 
+    # Revenue
+    'revenue': ConfigOrderBased(
+        keepCols=['Revenue']
+    ), 
+    # Description
+    'description': ConfigOrderBased(
+        keepCols=['Description']
+    ),
+    #Manual Urgency
+    'manual_urgency': ConfigOrderBased(
+        keepCols=['Manual_urgency']
     )
 }
 
@@ -328,39 +366,102 @@ class OrderDataframe(BaseDataframe):
             _bool_build_df, 
             _read_fillna_value
             )
+        
+        self._specific_order = None
+        self._specific_suborder = None
+
+        self._specific_order_suborder = None
+        self._transpose_specific_order_suborder = None
+
+        self._next_suborder = None
+        self._prev_suborder = None
+        self._completed_prev_percentage = None
+
+
+        self._time_req_lowerbound = None
+        self._time_req_upperbound = None
+        self._dates_start = None
+        self._dates_deadline = None
+
+
+        self._executed_on_line = None
+        self._specific_line = None
+        self._revenue = None
+        self._description = None
+        self._manual_urgency = None
 
     ### PROPERTIES: 
-    #NOTE: Using .setter might improve running time. 
     #FIXME: Based on needs in models also 'clean' the return value, that is remove 'None' values in e.g. specific_line_df
     
-    # Column Properties
+    ### Column Properties
+    #Orders
     @property
-    def time_req_df(self) -> pd.DataFrame:
-        return self._column_property_finder('time_req_df')
-    @property
-    def specific_line_df(self) -> pd.DataFrame:
-        return self._column_property_finder('specific_line_df')
-    @property
-    def dates_df(self) -> pd.DataFrame:
-        return self._column_property_finder('dates_df')
-    @property
-    def next_prev_suborder_df(self) -> pd.DataFrame:
-        return self._column_property_finder('next_prev_suborder_df')
-    @property
-    def revenue_df(self) -> pd.DataFrame:
-        return self._column_property_finder('revenue_df')
-    @property
-    def specific_order_df(self) -> pd.DataFrame:
-        return self._column_property_finder('specific_order_df')
-    @property
-    def percentage_df(self) -> pd.DataFrame:
-        return self._column_property_finder('percentage_df')
+    def specific_order(self) -> pd.DataFrame:
+        return self._column_property_finder('specific_order')
     
-    # Indicator Properties
     @property
-    def executed_on_line_df(self) -> pd.DataFrame:
-        return self._indicator_property_finder('executed_on_line_df')
+    def specific_suborder(self) -> pd.DataFrame:
+        return self._column_property_finder('specific_suborder')
+    
+    @property
+    def specific_order_suborder(self) -> pd.DataFrame:
+        return self._column_property_finder('specific_order_suborder')
+    
+    @property
+    def next_suborder(self) -> pd.DataFrame:
+        return self._column_property_finder('next_suborder')
+    
+    @property
+    def prev_suborder(self) -> pd.DataFrame:
+        return self._column_property_finder('prev_suborder')
 
+    @property
+    def completed_prev_percentage(self) -> pd.DataFrame:
+        return self._column_property_finder('prev_completed_percentage')
+
+    #DateTime
+    @property
+    def time_req_lowerbound(self) -> pd.DataFrame:
+        return self._column_property_finder('time_req_lowerbound')
+
+    @property
+    def time_req_upperbound(self) -> pd.DataFrame:
+        return self._column_property_finder('time_req_upperbound')
+
+    @property
+    def dates_start(self) -> pd.DataFrame:
+        return self._column_property_finder('dates_start')
+
+    @property
+    def dates_deadline(self) -> pd.DataFrame:
+        return self._column_property_finder('dates_deadline')
+
+    # Specific Info
+    @property
+    def executed_on_line(self) -> pd.DataFrame:
+        return self._indicator_property_finder('executed_on_line')
+    
+    @property
+    def specific_line(self) -> pd.DataFrame:
+        return self._column_property_finder('specific_line')
+    
+    @property
+    def revenue(self) -> pd.DataFrame:
+        return self._column_property_finder('revenue')
+    
+    @property
+    def description(self) -> pd.DataFrame:
+        return self._column_property_finder('description')
+    
+    @property
+    def manual_urgency(self) -> pd.DataFrame:
+        return self._column_property_finder('manual_urgency')
+    
+    # Additional orders property.
+    @property
+    def transpose_specific_order_suborder(self) -> pd.DataFrame:
+        return self
+    
     ### SUBCLASS SPECIFIC FUNCTIONS
     def clean(self):
         """Cleans the orders dataframe by changing all strings to uppercase and otherwise returning the element for the columns that need to be cleaned.
@@ -409,24 +510,49 @@ class OrderDataframe(BaseDataframe):
                 return element
     
     def _column_property_finder(self, property_name: str) -> pd.DataFrame:
-        cols_to_keep = orderBased[property_name].keepCols
-        return self.pandas_Dataframe[cols_to_keep]
+        # Obtain the property value only if the corresponding variable is empty
+        if getattr(self, f'_{property_name}', None) is None:
+            cols_to_keep = orderBased[property_name].keepCols
+            property_value = self._pandas_Dataframe[cols_to_keep]
+
+            # Set the corresponding variable dynamically
+            setattr(self, f'_{property_name}', property_value)
+
+            return property_value
+        
+        else:
+            # If the variable is already set, return its value
+            return getattr(self, f'_{property_name}')
 
     def _indicator_property_finder(self, property_name: str) -> pd.DataFrame:
-        cols_to_keep = orderBased[property_name].keepCols
+        if getattr(self, f"_{property_name}", None) is None:
+            cols_to_keep = orderBased[property_name].keepCols
 
-        # Get columns to drop.
-        drop_cols = [
-            col for col in self.pandas_Dataframe.copy().columns
-            if col not in cols_to_keep
-            ]
-        newDF = self.pandas_Dataframe.copy().drop(columns=drop_cols)
+            # Get columns to drop.
+            drop_cols = [
+                col for col in self.pandas_Dataframe.copy().columns
+                if col not in cols_to_keep
+                ]
+            newDF = self.pandas_Dataframe.copy().drop(columns=drop_cols)
 
-        # Make indicator
-        newDF = (newDF == True) | (newDF == 1)
+            # Make indicator
+            property_value = (newDF == True) | (newDF == 1)
+
+            # Set the corresponding variable dynamically
+            setattr(self, f'_{property_name}', property_value)
+            
+            return property_value
+
+        else:
+            # If the variable is already set, return its value
+            return getattr(self, f'_{property_name}')
 
         return newDF
 
+    def _set_column_property(self, property_name: str, value):
+        # Implement any necessary validation or processing here
+        # For now, assuming 'value' is a valid replacement for the property
+        self.pandas_Dataframe[orderBased[property_name].keepCols] = value
 
 
 class IndexSetsDataframe(BaseDataframe):
@@ -865,7 +991,6 @@ class CombinedPlanningDataframe(BaseDataframe):
     
 
 
-#FIXME: Improve efficiency using np.
 class PenaltyDataframe(BaseDataframe):
     def __init__(
             self, _pandas_ExcelFile: pd.ExcelFile, 
@@ -885,51 +1010,54 @@ class PenaltyDataframe(BaseDataframe):
             )
     
     def build(self, managerDF: ManagerDataframes):
-
-        @staticmethod
-        def _calc_penalty(ti: pd.Timestamp, order_suborder: str, dates_df: pd.DataFrame, revenue_df: pd.DataFrame, time_req_df: pd.DataFrame) -> float:
-            date_start = dates_df.loc[order_suborder].iloc[0]
-            date_deadline = dates_df.loc[order_suborder].iloc[1]
-            revenue = revenue_df.loc[order_suborder].iloc[0]
-            time_req_lb = time_req_df.loc[order_suborder].iloc[0]
-            time_req_ub = time_req_df.loc[order_suborder].iloc[1]
-
-            start_penalty = True if ti >= date_start else False
-            penalty = 50
-
-            if start_penalty:
-                start_now = (ti-date_start)/pd.Timedelta('1D')
-                deadline_now = (date_deadline - ti) / pd.Timedelta('1D')
-                multiply_now = 4 * ((ti - pd.Timestamp('1900-01-01'))/ pd.Timedelta('1D'))
-                exp_val = deadline_now/multiply_now
-        
-                penalty = start_now + math.exp(exp_val) + math.log(revenue)
-            
-            return penalty
-
         # Obtain needed dataframes.
         orderDF = managerDF.get_Dataframe('OrderDF', expected_return_type_input=OrderDataframe)
         indexDF = managerDF.get_Dataframe('IndexDF', expected_return_type_input=IndexSetsDataframe)
-        
+
         # Obtain specific columns of OrderDF
-        dates_df = orderDF.dates_df
-        revenue_df = orderDF.revenue_df
-        time_req_df = orderDF.time_req_df
+        date_start = orderDF.dates_start
+        date_deadline = orderDF.dates_deadline
+        revenue = orderDF.revenue
 
         # Obtain specific index sets of IndexDF
-        time_index = indexDF.time_intervals
+        time_index = pd.to_datetime(indexDF.time_intervals)
         order_suborder_index = indexDF.order_suborder
 
         penalty_df = pd.DataFrame(index=time_index, columns=order_suborder_index)
 
-        ic(dates_df, revenue_df, time_req_df)
-        #FIXME: use np to optimise efficiency.
-        for ti in time_index:
-            for order_suborder in order_suborder_index:
-                penalty_df.loc[ti, order_suborder] = _calc_penalty(ti=ti, order_suborder=order_suborder, dates_df=dates_df, revenue_df=revenue_df, time_req_df=time_req_df)
+        for order_suborder in order_suborder_index:
+            start_penalty = time_index >= date_start.loc[order_suborder].iloc[0] # Array of lenght: len(time_index)
+            penalty_df.loc[:, order_suborder] = 50  # Default value for cases where start_penalty is False
+
+            if np.any(start_penalty):
+                time_subset = time_index[start_penalty]
+                date_start_subset = date_start.loc[order_suborder].iloc[0]
+                date_deadline_subset = date_deadline.loc[order_suborder].iloc[0]
+                revenue_subset = revenue.loc[order_suborder].iloc[0]
+
+                penalty_df.loc[start_penalty, order_suborder] = self._calc_penalty(
+                    time_subset, date_start_subset, date_deadline_subset, revenue_subset
+                )
 
         self.pandas_Dataframe = penalty_df
-    
+
+    ### HELPER FUNCTIONS
+    @staticmethod
+    def _calc_penalty(
+        time_index, 
+        date_start, 
+        date_deadline, 
+        revenue
+        ):
+        start_now = (time_index - date_start) / pd.Timedelta('1D')
+        deadline_now = (date_deadline - time_index) / pd.Timedelta('1D')
+        multiply_now = 4 * ((time_index - pd.Timestamp('1900-01-01')) / pd.Timedelta('1D'))
+        exp_val = deadline_now / multiply_now
+
+        penalty = start_now + np.exp(exp_val) + np.log(revenue)
+
+        return penalty
+        
 
 
 class SolutionDataframe(BaseDataframe):
@@ -1001,6 +1129,7 @@ dfs = {
 
 T = TypeVar('T', bound='BaseDataframe')
 
+#TODO: add the test_data.py Process_Data() function.
 class ManagerDataframes:
     """This class is used to store different dataframes. It can then be used to fetch or remove certain dataframes based on their name.
     """

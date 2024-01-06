@@ -95,33 +95,33 @@ class EWOptimisation:
     def _retrieve_orderDF_data(self):
         """Retrieves the column data from the OrderDF. 
         """
-        # Retrieve dataframes that represent specific columns of the 'order_df'. 
-        self.dates_df = self.orderDF.dates_df
-        self.revenue_df = self.orderDF.revenue_df
-        self.time_req_df = self.orderDF.time_req_df
-        self.specific_order_suborder = self.orderDF.specific_order_df
-        self.specific_line_df = self.orderDF.specific_line_df
-        self.exec_on_line_df = self.orderDF.executed_on_line_df
-        self.suborders_df = self.orderDF.next_prev_suborder_df
-        self.percentage_df = self.orderDF.percentage_df
+        #ORDER
+        self.specific_order = self.orderDF.specific_order
+        self.specific_suborder = self.orderDF.specific_suborder
 
-        # FIXME: change this to properties of the df.
-        # Retrieve series of the above mentioned df's for easy usage throughout this file.
-        self.date_start = self.dates_df.iloc[:, 0]
-        self.date_deadline = self.dates_df.iloc[:, 1]
-        self.revenue = self.revenue_df.iloc[:, 0]
-        self.time_req_lb = self.time_req_df.iloc[:, 0]
-        self.time_req_ub = self.time_req_df.iloc[:, 1]
-        
-        # Create dataframe where unique_code can be looked for by using specific order and suborder. (order, suborder) -> (order_suborder)
-            # FIXME: NOTE This can be made a 'specific' function if we implement subclasses of the dataframe class, like it is stated in the todo's
-            # RENAME: reverseSearch_specific_order_suborder?!
-        transpose_specific_order_suborder = self.specific_order_suborder.copy()
-        transpose_index = self.specific_order_suborder.columns.to_list()
-        transpose_specific_order_suborder.reset_index(inplace=True)
-        self.transpose_specific_order_suborder = transpose_specific_order_suborder.set_index(transpose_index, inplace=True)
+        self.specific_order_suborder = self.orderDF.specific_order_suborder
+        self.transpose_specific_order_suborder = self.orderDF.transpose_specific_order_suborder
 
+        self.next_suborder = self.orderDF.next_suborder
+        self.prev_suborder = self.orderDF.prev_suborder
 
+        self.completed_prev_percentage = self.orderDF.completed_prev_percentage
+
+        #DATETIME
+        self.time_req_lb = self.orderDF.time_req_lowerbound
+        self.time_req_ub = self.orderDF.time_req_upperbound
+
+        self.date_start = self.orderDF.dates_start
+        self.date_deadline = self.orderDF.dates_deadline
+
+        #SPECIFIC INFO
+        self.executed_on_line = self.orderDF.executed_on_line
+        self.specific_line = self.orderDF.specific_line
+        self.revenue = self.orderDF.revenue
+        self.description = self.orderDF.description
+        self.manual_urgency = self.orderDF.manual_urgency
+
+    #FIXME: improve these set declarations, and group constraints.
     def _create_pyomo_sets(self):
         ### Create needed sets, variables and parameters for the model.
         # Create sets for the model
@@ -218,7 +218,7 @@ class EWOptimisation:
             Returns:
                 Expression: 0 <= allocation(sum over time) <= 1 (skills_df has binary value (0/1))
             """
-            suborder = self.specific_order_suborder.loc[i].iloc[1]
+            suborder = self.specific_suborder.loc[i].iloc[0]
             return (0, 
                     sum(
                         m.var_alloc[(i, j, k)] 
@@ -249,7 +249,7 @@ class EWOptimisation:
         ### RULES THAT IMPLEMENT THAT NEXT SUBORDERS CANNOT BE STARTED BEFORE PREVIOUS SUBORDER IS COMPLETED (FOR ATLEAST X%)
 
         # HELPER FUNCTION
-        def get_previous_suborder(i):
+        def _get_previous_suborder(i):
             """Gets the previous order_suborder for a given order_suborder {i}. If there is no previous suborder 'None' is returned, if there is a previous suborder a list with attributes of the previous suborder is returned. 
 
             Args:
@@ -258,12 +258,12 @@ class EWOptimisation:
             Returns:
                 List: if there is a previous suborder: [order, suborder, percentage, prev_suborder_index, prev_order_suborder], if there is no previous suborder: None. /n So, in handling the case where there is no previous suborder one can check if the output is 'None'
             """
-            order = self.specific_order_suborder.loc[i].iloc[0]
-            suborder = self.specific_order_suborder.loc[i].iloc[1]
-            percentage = self.percentage_df.loc[i].iloc[0]
+            order = self.specific_order.loc[i].iloc[0]
+            suborder = self.specific_suborder.loc[i].iloc[0]
+            percentage = self.completed_prev_percentage.loc[i].iloc[0]
 
             # Not all orders follow the same route through the suborders. To prevent this from resulting in problem, we loop through each previous suborder until we find the first present suborder.
-            # NOTE:This might be improved by adding a prev_sub and next_sub to the orders_df, but this is dependent on which data the client stores for connections between orders.
+            # TODO:This might be improved by adding a prev_sub and next_sub to the orders_df, but this is dependent on which data the client stores for connections between orders.
             prev_suborder_index = self.list_suborder_set.index(suborder) - 1
             prev_order_suborder = None
             while prev_suborder_index > 0:
@@ -320,7 +320,7 @@ class EWOptimisation:
                 Expression: 0 <= allocation <= a, where a >= 0 and 'a >= 1' if enough hours of the previous suborder are completed, else 'a < 1'.
             """
             # Obtain the needed information for the previous suborder.
-            list_prev_suborder = get_previous_suborder(i)
+            list_prev_suborder = _get_previous_suborder(i)
             if not list_prev_suborder: # If there is not previous suborder skip the constraint.
                 return pyo.Constraint.Skip
             
@@ -350,7 +350,7 @@ class EWOptimisation:
             """
 
             # Obtain the needed information for the previous suborder.
-            list_prev_suborder = get_previous_suborder(i)
+            list_prev_suborder = _get_previous_suborder(i)
             if not list_prev_suborder: # If there is not previous suborder skip the constraint.
                 return pyo.Constraint.Skip
             
@@ -383,7 +383,7 @@ class EWOptimisation:
             Returns:
                 Expression: 0 <= allocation(sum over time)(for all employees {k}) <= 0 if order_suborder {i} should be allocated on a line, else constraint is skipped.
             """
-            if self.exec_on_line_df.loc[i].iloc[0]: # Check whether an order_suborder should be preformed on a line.
+            if self.executed_on_line.loc[i].iloc[0]: # Check whether an order_suborder should be preformed on a line.
                 return (0, sum(m.var_alloc[(i, j, k)] for j in m.set_time), 0)
             else:
                 return pyo.Constraint.Skip # Skips the constraint if an order_suborder should not be preformed on a line.
@@ -403,7 +403,7 @@ class EWOptimisation:
             Returns:
                 Expression: 0 <= allocation(sum over time) <= 0, for employee_line {k} if the order_suborder must be allocated by a specific line other than the current employee_line {k}, else the constraint is skipped.
             """
-            specific_line = self.specific_line_df.loc[i].iloc[0]
+            specific_line = self.specific_line.loc[i].iloc[0]
             
             if specific_line != '': # Continue only if the order_suborder {k} has a specific line on which it must be preformed.
                 if specific_line != k: # if employee_line {k} is not equal to the specific line
@@ -425,7 +425,7 @@ class EWOptimisation:
             Returns:
                 Expression: 0 <= allocation(sum over time) <= 0, if order_suborder {i} is not executed on a line (that is, is executed by employees) then the order_suborder cannot be allocated to lines.
             """
-            if not self.exec_on_line_df.loc[i].iloc[0]: # If the order_suborder is not executed on a line -> it is executed by employees.
+            if not self.executed_on_line.loc[i].iloc[0]: # If the order_suborder is not executed on a line -> it is executed by employees.
                 return (0, m.var_alloc[(i, j, k)], 0)
             else:
                 return pyo.Constraint.Skip
