@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import pandas as pd
 import numpy as np
-import math
+
 import openpyxl
 
 from icecream import ic
@@ -12,77 +12,7 @@ from typing import Union, TypeVar
 
 from dataclasses import dataclass
 
-@dataclass
-class ConfigOrderBased:
-    """Class used to present a configuration for properties in the OrderDF. 
-    \n That is, which columns to keep in order to get a series of (a single) column(s).
-    """
-    keepCols: Union[list[str], str]
-
-orderBased = {
-    # Order/Suborder
-    # Specific Components
-    'specific_order': ConfigOrderBased(
-        keepCols=['Order_number']
-    ),
-    'specific_suborder': ConfigOrderBased(
-        keepCols=['Sub_order']
-    ),
-    'specific_order_suborder': ConfigOrderBased(
-        keepCols=['Order_number', 'Sub_order']
-    ), 
-
-    # Next/previous suborder
-    'next_suborder': ConfigOrderBased(
-        keepCols=['Next_sub_order']
-    ),
-    'prev_suborder': ConfigOrderBased(
-        keepCols=['Previous_sub_order']
-    ),
-
-    # Requirements of completion
-    'prev_completed_percentage': ConfigOrderBased(
-        keepCols=['Percentage_prev_sub_order_needed_before_next_sub_order']
-    ), 
-
-    # Date/Time requirements
-    # Required time
-    'time_req_lowerbound': ConfigOrderBased(
-        keepCols=['Time_hours_lowerbound']
-    ), 
-    'time_req_upperbound': ConfigOrderBased(
-        keepCols=['Time_hours_upperbound']
-    ),
-    # Required dates
-    'dates_start': ConfigOrderBased(
-        keepCols=['Date_start']
-    ), 
-    'dates_deadline': ConfigOrderBased(
-        keepCols=['Date_deadline']
-    ), 
-
-    # Specific order information
-    # Executed on line
-    'executed_on_line': ConfigOrderBased(
-        keepCols=['On_line']
-    ),
-    # Required line
-    'specific_line': ConfigOrderBased(
-        keepCols=['Production_line_specific_line']
-    ), 
-    # Revenue
-    'revenue': ConfigOrderBased(
-        keepCols=['Revenue']
-    ), 
-    # Description
-    'description': ConfigOrderBased(
-        keepCols=['Description']
-    ),
-    #Manual Urgency
-    'manual_urgency': ConfigOrderBased(
-        keepCols=['Manual_urgency']
-    )
-}
+from gen_config import dfs, orderBased
 
 
 class BaseDataframe:
@@ -392,7 +322,8 @@ class OrderDataframe(BaseDataframe):
 
     ### PROPERTIES: 
     #FIXME: Based on needs in models also 'clean' the return value, that is remove 'None' values in e.g. specific_line_df
-    
+    # check if possible, because this could hinder .loc[] since it could result in errors.
+
     ### Column Properties
     #Orders
     @property
@@ -1068,6 +999,7 @@ class SolutionDataframe(BaseDataframe):
 class ConfigBaseDataframe:
     """Class used to present a configuring for BaseDataframes.
     """
+    excelFile: pd.ExcelFile = None
     name_excel_sheet: str = None
     class_type: type[BaseDataframe] = BaseDataframe
 
@@ -1075,61 +1007,22 @@ class ConfigBaseDataframe:
     read_fillna_value: Union[None, any] = None
     
     build_df: bool = False
-    build_column_based: bool = False
-    build_indicator_based: bool = False
-    build_keep_columns: Union[str, list[str]] = None
 
-dfs = {
-        # >>>> Name of instance: ConfigBaseDataframe[...]
-        'BaseDF': ConfigBaseDataframe(
-            class_type=BaseDataframe,
-            read_sheet=False
-            ), 
-        'OrderDF': ConfigBaseDataframe(
-            name_excel_sheet='Orders_dataframe',
-            class_type=OrderDataframe,
-            read_fillna_value=''
-            ), 
-        'IndexDF': ConfigBaseDataframe(
-            name_excel_sheet='Index_sets_dataframe', 
-            class_type=IndexSetsDataframe,
-            read_fillna_value=''
-            ),
-        'OldPlanningDF': ConfigBaseDataframe(
-            name_excel_sheet='Planning', 
-            class_type=OldPlanningDataframe,
-            read_fillna_value=0.0
-            ), 
-        'ManualPlanningDF': ConfigBaseDataframe(
-            name_excel_sheet='Manual_planning', 
-            class_type=ManualPlanningDataframe,
-            read_fillna_value=0.0
-            ), 
-        'AvailabilityDF': ConfigBaseDataframe(
-            name_excel_sheet='Config_availability',
-            class_type=AvailabilityDataframe,
-            read_fillna_value=0.0
-            ),
-        'SkillDF': ConfigBaseDataframe(
-            name_excel_sheet='Config_skills', 
-            class_type=SkillDataframe,
-            read_fillna_value=0.0
-            ), 
-        'CombinedPlanningDF': ConfigBaseDataframe(
-            class_type=CombinedPlanningDataframe,
-            read_sheet=False,
-            build_df=True
-            ), 
-        'PenaltyDF': ConfigBaseDataframe(
-            class_type=PenaltyDataframe,
-            read_sheet=False,
-            build_df=True
-            )
-    }        
+#TODO: Add main() in parts to data.py
+# dfs in beginning file or import from gen.config
+
+
+excelFileRead = pd.ExcelFile(
+    "/Users/gebruiker/Documents/GitHub/Production_Optimisation/production_optimisation/EW_Optimisation.xlsm", 
+    engine='openpyxl'
+    )
+excelFileSolution = pd.ExcelFile(
+    "/Users/gebruiker/Documents/GitHub/Production_Optimisation/production_optimisation/EW_Optimisation.xlsm", 
+    engine='openpyxl'
+    )
 
 T = TypeVar('T', bound='BaseDataframe')
 
-#TODO: add the test_data.py Process_Data() function.
 class ManagerDataframes:
     """This class is used to store different dataframes. It can then be used to fetch or remove certain dataframes based on their name.
     """
@@ -1157,6 +1050,11 @@ class ManagerDataframes:
             
             else:
                 name_df = dataframe_to_store._name_Dataframe
+                
+                # Check is there is not already an instance with 'name_df'
+                self._check_name_in_StoredDataframes(name_Dataframe=name_df, should_be_stored=False)
+
+                # If passed, store dataframe under 'name_df'
                 self.stored_Dataframes[name_df] = dataframe_to_store
 
         else:
@@ -1179,7 +1077,7 @@ class ManagerDataframes:
             self.remove_Dataframe(dfs_to_check=[dfs_to_remove])
         
         # Check if the DataFrame exists in the dictionary
-        self.validate_presence_Dataframe(dfs_to_check=dfs_to_remove)
+        self._validate_presence_Dataframe(dfs_to_check=dfs_to_remove)
         
         # Remove the DataFrame
         for df in dfs_to_remove:
@@ -1288,6 +1186,48 @@ class ManagerDataframes:
 
             return results
     
+    def process_data(self):
+        """Reads the data from the dictionairy containing specific configurations for each dataframe and cleans and stores them.
+        """
+        for name, config in dfs.items():
+            # Unpack the configuration of individual dataframes.
+            excelFile = config.excelFile
+            sheet_name = config.name_excel_sheet
+            
+            class_name = config.class_type
+
+            bool_read_sheet = config.read_sheet
+            read_fillna_value = config.read_fillna_value
+
+            bool_build_df = config.build_df
+
+            # Instanciate the dataframe instance. 
+            df_instance: type[BaseDataframe] = class_name(
+                _pandas_ExcelFile=excelFile,
+                _name_Dataframe=name,
+                _name_ExcelSheet=sheet_name,
+
+                _bool_read_df=bool_read_sheet,
+                _read_fillna_value = read_fillna_value
+            )
+            
+            # Read the dataframe from excel
+            df_instance.read_Dataframe_fromExcel()
+            
+            # Clean the data
+            df_instance.clean()
+
+            # Build the dataframe if necessary. 
+            if bool_build_df:
+                df_instance.build(managerDF=self)
+            
+            #FIXME: If no longer needed in the dfs, then remove. 
+            if name == 'BaseDF':
+                df_instance.status_cleaned = True
+            
+            # Store the dataframe. 
+            self.store_Dataframe(df_instance)
+
     ### HELPER FUNCTIONS
     def _validate_presence_Dataframe(
             self, 
@@ -1381,22 +1321,30 @@ class ManagerDataframes:
                 f"While validating the presence of (a) dataframe(s), one or more errors have occurred: \n {', '.join(f'{key}' for key in errors.keys())} \n\n The following things did not go as expected: \n{incorrect}. \n\n The following things did go as expected: \n {correct}"
             )
         
-    def _check_name_in_StoredDataframes(self, _name_Dataframe: str):
+    def _check_name_in_StoredDataframes(self, name_Dataframe: str, should_be_stored: bool = True):
         """Checks whether a name is in the stored dataframes, if not it raises an error and suggests all possible names, but also indicates if there is a name with the same spelling but with different cases, like name and naMe. 
 
+        Use should_be_stored to differentiate between checking for name presence in stored dfs vs checking if name is not presence in stored dfs. The difference is that in the first case you can 'get' the existing dataframe, and in the second case you can 'store' a new dataframe.
+
         Args:
-            _name_Dataframe (str): df_name to check
+            name_Dataframe (str): df_name to check
+            should_be_stored (bool): True if you want to check if the name is in the stored dfs, False if you want to check if they are not in the stored dfs. Defaults to True. 
 
         Raises:
             ValueError: If the name cannot be found, suggests other names.
         """
-        if _name_Dataframe in self.stored_Dataframes:
-            pass
+        if should_be_stored:
+            if name_Dataframe in self.stored_Dataframes:
+                pass
+            
+            else:
+                suggested_similar_names =  self._suggest_names_similar(name=name_Dataframe)
+                suggested_all_names = self._suggest_names_all()
+                raise ValueError(f"The given name '{name_Dataframe}' cannot be found in the stored names. \n Did you mean one of these: {', '.join(suggested_similar_names)}? \n\n If not, select one of the saved names: {', '.join(suggested_all_names)}")
         
         else:
-            suggested_similar_names =  self._suggest_names_similar(name=_name_Dataframe)
-            suggested_all_names = self._suggest_names_all()
-            raise ValueError(f"The given name '{_name_Dataframe}' cannot be found in the stored names. \n Did you mean one of these: {', '.join(suggested_similar_names)}? \n\n If not, select one of the saved names: {', '.join(suggested_all_names)}")
+            if name_Dataframe in self.stored_Dataframes:
+                raise ValueError(f"The given dataframe name: f'{name_Dataframe}', already has an instance in the ManagerDataframes object. So, it cannot be stored under this name. \n\n If you want to store a new pd.DataFrame instance, use BaseDataframe.pandas_dataframe = new_instance.")
     
     def _suggest_names_similar(self, name: str):
         """Gives the name suggestion for names that have the same letters, but different cases. 
