@@ -393,7 +393,7 @@ class OrderDataframe(BaseDataframe):
     # Additional orders property.
     @property
     def transpose_specific_order_suborder(self) -> pd.DataFrame:
-        return self
+        return self._transpose_specific_orders()
     
     ### SUBCLASS SPECIFIC FUNCTIONS
     def clean(self):
@@ -482,10 +482,19 @@ class OrderDataframe(BaseDataframe):
 
         return newDF
 
-    def _set_column_property(self, property_name: str, value):
-        # Implement any necessary validation or processing here
-        # For now, assuming 'value' is a valid replacement for the property
-        self.pandas_Dataframe[self.orderBased[property_name].keepCols] = value
+    def _transpose_specific_orders(self):
+        if not self._transpose_specific_order_suborder:
+            df = self.specific_order_suborder
+            cols = df.columns.to_list()
+            df = df.reset_index()
+            df = df.set_index(cols)
+
+            self._transpose_specific_order_suborder = df
+        
+        else:
+            pass
+
+        return self._transpose_specific_order_suborder 
 
 
 class IndexSetsDataframe(BaseDataframe):

@@ -1,16 +1,14 @@
 import pyomo
 import pyomo.opt
 import pyomo.environ as pyo
+
 import pandas as pd
 import logging
 from icecream import ic
-import sys
-
-from data.dataframe import Dataframe
-
-from general_configuration import dfs, old_planning_limit
 
 from typing import Union
+
+from general_configuration import dfs, old_planning_limit
 
 from data.data import (
     ManagerDataframes, 
@@ -84,7 +82,7 @@ class EWOptimisation:
         self.indexDF = self.managerDF.get_Dataframe('IndexDF', expected_return_type_input=IndexSetsDataframe)
         
         # Retrieve configurations
-        self.skills_df = self.managerDF.get_Dataframe('SkillsDF').pandas_Dataframe
+        self.skills_df = self.managerDF.get_Dataframe('SkillDF').pandas_Dataframe
         self.availability_df = self.managerDF.get_Dataframe('AvailabilityDF').pandas_Dataframe
         
         # Retrieve penalties
@@ -208,12 +206,9 @@ class EWOptimisation:
             GAPS INDICATES IF BETWEEN THE START AND FINISH TIMES OF AN ORDER_SUBORDER, THE IS AN NOT ALLOCATION AT A CERTAIN TIME. THAT IS, THERE IS A GAP IN THE SCHEDULE. 
 
         """
-        constr_apply_conditions_for_order_suborder()
-        constr_apply_conditions_for_employee_line()
-        constr_apply_conditions_for_prev_suborder_dependency()
-        constr_apply_conditions_specifc_empl_line_for_order_suborder()
-        constr_apply_conditions_planning()
-        constr_apply_conditions_gaps()
+        # -------------------------------------- #
+        # FIRST DEFINE THE FUNCTIONS, THEN CALL THEM IN THE END OF THE FUNCTION. OTHERWISE A UnboundLocalError WILL OCCUR.
+        # -------------------------------------- #
 
         ### RULES THAT IMPLEMENT ORDER_SUBORDER SPECIFICS
         def constr_apply_conditions_for_order_suborder():
@@ -231,17 +226,17 @@ class EWOptimisation:
                     Expression: time_req_lb <= allocation(sum over time and employee_line) <= req_time_up
                 """
                 return (
-                    self.time_req_lb.loc[i],
+                    self.time_req_lb.loc[i].iloc[0],
                     sum(
                         m.var_alloc[(i, j, k)] 
                         for j in m.set_time 
                         for k in m.set_employee_line
                     ),
-                    self.time_req_ub.loc[i]
+                    self.time_req_ub.loc[i].iloc[0]
                 )
             self.m.constr_required_planned_hours = pyo.Constraint(self.m.set_order_suborder, rule=rule_requiredPlannedHours)
 
-        ### RULES THAT IMPLEMENT EMPLOYEE_LINE SPECIFICS
+        ### RULES THAT IMPLEMENT EMPLOYEE_LINE SPECIFICS ------------------------- Check
         def constr_apply_conditions_for_employee_line():
             # EMPLOYEE_LINE ONLY ALLOCATED ONCE PER TIME 
             def rule_oneAllocPerEmpl_linePerMoment(m, j, k):
@@ -307,70 +302,6 @@ class EWOptimisation:
 
         ### RULES THAT IMPLEMENT THAT NEXT SUBORDERS CANNOT BE STARTED BEFORE PREVIOUS SUBORDER IS COMPLETED (FOR ATLEAST X%)
         def constr_apply_conditions_for_prev_suborder_dependency():
-            # PREVIOUS SUBORDER MUST BE COMPLETED FOR ATLEAST X%
-            def rule_prevSuborderCompletedBeforeNext(m, i, j, k):
-                """This rule makes sure that before the next suborder is allocated, the previous suborder has to be completed for at least a certain percentage.
-                This is done by finding the previous suborder for the order_suborder {i}, then finding the amount of allocated hours before time {j} to the previous suborder
-            
-                Args:
-                    m (pyo.ConcreteModel()): pyomo Model
-                    i (str): order_suborder index
-                    j (datetime): time index
-                    k (str): employees_lines index
-
-                Returns:
-                    Expression: 0 <= allocation <= a, where a >= 0 and 'a >= 1' if enough hours of the previous suborder are completed, else 'a < 1'.
-                """
-                # Obtain the needed information for the previous suborder.
-                list_prev_suborder = _get_previous_suborder(i)
-                if not list_prev_suborder: # If there is not previous suborder skip the constraint.
-                    return pyo.Constraint.Skip
-                
-                percentage = list_prev_suborder[1]
-                prev_order_suborder = list_prev_suborder[0]
-                
-                ratio_completedHoursPrevSuborders = _get_ratio_completed_hours_for_suborder(m, prev_order_suborder, j)
-
-                # Dividing by the needed percentage to inflate the completed hours for the previous suborder, such that the restriction is looser if that is allowed. (Elastic constraint?)
-                ratio_completed_vs_neededHours = ratio_completedHoursPrevSuborders / percentage
-
-                # The constraint is added for each employee_line since summing over the employee_line {k} would result in unbalanced equation. This causes a possibility that the amount of required hours for the order_suborder is smaller than the RHS, since the LHS sum could then become equal to the required hours the order_suborder could be completed before the other previous suborder is completed.
-                return m.var_alloc[i,j,k] <= ratio_completed_vs_neededHours
-            self.m.constr_prevSuborderCompletedBeforeNext = pyo.Constraint(self.m.set_order_suborder, self.m.set_time, self.m.set_employee_line, rule=rule_prevSuborderCompletedBeforeNext)
-
-            # PREVIOUS SUBORDER MUST BE COMPLETED FOR A LARGER PERCENTAGE THAN THE NEXT SUBORDER
-            def rule_prevSuborderCannotOvertakeCurrentSuborder(m, i, j):
-                """This rule makes sure that the current suborder cannot be scheduled for a larger percentage than the previous suborder. This is, you cannot schedule to submit 5 papers, if you have only written 3 papers at time {j}
-
-                Args:
-                    m (pyo.ConcreteModel()): pyomo Model
-                    i (str): order_suborder index
-                    j (datetime): time index
-                
-                Returns:
-                    Expression: ratio_previous_suborder >= ratio_current_suborder, for the completed amount of hours vs the required amount per suborder.
-                """
-
-                # Obtain the needed information for the previous suborder.
-                list_prev_suborder = _get_previous_suborder(i)
-                if not list_prev_suborder: # If there is not previous suborder skip the constraint.
-                    return pyo.Constraint.Skip
-                
-                prev_order_suborder = list_prev_suborder[0]
-
-                # Obtain the ratio's
-                ratio_Current = _get_ratio_completed_hours_for_suborder(m, i, j)
-                ratio_Prev = _get_ratio_completed_hours_for_suborder(m, prev_order_suborder, j)
-
-                # If either of the ratios is a pyo.numeric_expr.DivisionExpression, then return the constraint
-                if isinstance(ratio_Prev, pyo.numeric_expr.DivisionExpression) or isinstance(ratio_Current, pyo.numeric_expr.DivisionExpression):
-                    return ratio_Prev >= ratio_Current
-                elif ratio_Prev == 0 and ratio_Current == 0: # If both ratios are zero, then skip the constraint.
-                    return pyo.Constraint.Skip
-                else:
-                    return ratio_Prev >= ratio_Current
-            self.m.constr_prevSuborderCannotOvertakeNextSuborder = pyo.Constraint(self.m.set_order_suborder, self.m.set_time, rule=rule_prevSuborderCannotOvertakeCurrentSuborder)
-
             # HELPER FUNCTION // NOTE: contains ToDo
             def _get_previous_suborder(i):
                 """Gets the previous order_suborder for a given order_suborder {i}. If there is no previous suborder 'None' is returned, if there is a previous suborder a list with attributes of the previous suborder is returned. 
@@ -415,7 +346,7 @@ class EWOptimisation:
                 Returns:
                     Expression: allocation(sum over {t} if {t} < time j and over employee_line) / time_required_lb
                 """
-                if self.time_req_lb.loc[i] == 0:
+                if self.time_req_lb.loc[i].iloc[0] == 0:
                     return 0
                 else:
                     ratio = sum(
@@ -423,9 +354,75 @@ class EWOptimisation:
                         for ti_j in m.set_time 
                         for empl_line_i in m.set_employee_line
                         if ti_j < j
-                        ) / self.time_req_lb.loc[i] # Total amount of allocated hours of the previous suborder devided by the lowerbound of required time. The lowerbound is taken, since the upperbound could result in the fraction never reaching 1. Opposite of that, lowerbound could mean that the fraction reaches 1 prematurely
+                        ) / self.time_req_lb.loc[i].iloc[0] # Total amount of allocated hours of the previous suborder devided by the lowerbound of required time. The lowerbound is taken, since the upperbound could result in the fraction never reaching 1. Opposite of that, lowerbound could mean that the fraction reaches 1 prematurely
                 
                     return ratio
+
+            # ACTUAL FUNCTIONS
+            # PREVIOUS SUBORDER MUST BE COMPLETED FOR ATLEAST X%
+            def rule_prevSuborderCompletedBeforeNext(m, i, j, k):
+                """This rule makes sure that before the next suborder is allocated, the previous suborder has to be completed for at least a certain percentage.
+                This is done by finding the previous suborder for the order_suborder {i}, then finding the amount of allocated hours before time {j} to the previous suborder
+            
+                Args:
+                    m (pyo.ConcreteModel()): pyomo Model
+                    i (str): order_suborder index
+                    j (datetime): time index
+                    k (str): employees_lines index
+
+                Returns:
+                    Expression: 0 <= allocation <= a, where a >= 0 and 'a >= 1' if enough hours of the previous suborder are completed, else 'a < 1'.
+                """
+                # Obtain the needed information for the previous suborder.
+                list_prev_suborder = _get_previous_suborder(i)
+                if not list_prev_suborder: # If there is not previous suborder skip the constraint.
+                    return pyo.Constraint.Skip
+                
+                percentage = list_prev_suborder[1]
+                prev_order_suborder = list_prev_suborder[0]
+                
+                ratio_completedHoursPrevSuborders = _get_ratio_completed_hours_for_suborder(m, prev_order_suborder, j)
+
+                # Dividing by the needed percentage to inflate the completed hours for the previous suborder, such that the restriction is looser if that is allowed. (Elastic constraint?)
+                ratio_completed_vs_neededHours = ratio_completedHoursPrevSuborders / percentage
+                
+                # The constraint is added for each employee_line since summing over the employee_line {k} would result in unbalanced equation. This causes a possibility that the amount of required hours for the order_suborder is smaller than the RHS, since the LHS sum could then become equal to the required hours the order_suborder could be completed before the other previous suborder is completed.
+                return m.var_alloc[i,j,k] <= ratio_completed_vs_neededHours
+            self.m.constr_prevSuborderCompletedBeforeNext = pyo.Constraint(self.m.set_order_suborder, self.m.set_time, self.m.set_employee_line, rule=rule_prevSuborderCompletedBeforeNext)
+
+            # PREVIOUS SUBORDER MUST BE COMPLETED FOR A LARGER PERCENTAGE THAN THE NEXT SUBORDER
+            def rule_prevSuborderCannotOvertakeCurrentSuborder(m, i, j):
+                """This rule makes sure that the current suborder cannot be scheduled for a larger percentage than the previous suborder. This is, you cannot schedule to submit 5 papers, if you have only written 3 papers at time {j}
+
+                Args:
+                    m (pyo.ConcreteModel()): pyomo Model
+                    i (str): order_suborder index
+                    j (datetime): time index
+                
+                Returns:
+                    Expression: ratio_previous_suborder >= ratio_current_suborder, for the completed amount of hours vs the required amount per suborder.
+                """
+
+                # Obtain the needed information for the previous suborder.
+                list_prev_suborder = _get_previous_suborder(i)
+                if not list_prev_suborder: # If there is not previous suborder skip the constraint.
+                    return pyo.Constraint.Skip
+                
+                prev_order_suborder = list_prev_suborder[0]
+
+                # Obtain the ratio's
+                ratio_Current = _get_ratio_completed_hours_for_suborder(m, i, j)
+                ratio_Prev = _get_ratio_completed_hours_for_suborder(m, prev_order_suborder, j)
+
+                # If either of the ratios is a pyo.numeric_expr.DivisionExpression, then return the constraint
+                if isinstance(ratio_Prev, pyo.numeric_expr.DivisionExpression) or isinstance(ratio_Current, pyo.numeric_expr.DivisionExpression):
+                    return ratio_Prev >= ratio_Current
+                elif ratio_Prev == 0 and ratio_Current == 0: # If both ratios are zero, then skip the constraint.
+                    return pyo.Constraint.Skip
+                else:
+                    return ratio_Prev >= ratio_Current
+            self.m.constr_prevSuborderCannotOvertakeNextSuborder = pyo.Constraint(self.m.set_order_suborder, self.m.set_time, rule=rule_prevSuborderCannotOvertakeCurrentSuborder)
+
 
         ### RULES THAT IMPLEMENT THAT ORDERS ARE ALLOCATED ONLY TO SPECIFIC (TYPE OF) LINES OF EMPLOYEES.
         def constr_apply_conditions_specifc_empl_line_for_order_suborder():
@@ -462,9 +459,10 @@ class EWOptimisation:
                 Returns:
                     Expression: 0 <= allocation(sum over time) <= 0, for employee_line {k} if the order_suborder must be allocated by a specific line other than the current employee_line {k}, else the constraint is skipped.
                 """
+                ic(self.specific_line.loc[i].iloc[0])
                 specific_line = self.specific_line.loc[i].iloc[0]
                 
-                if specific_line != '': # Continue only if the order_suborder {k} has a specific line on which it must be preformed.
+                if specific_line: # Continue only if the order_suborder {k} has a specific line on which it must be preformed.
                     if specific_line != k: # if employee_line {k} is not equal to the specific line
                         return (0, sum(m.var_alloc[(i, j, k)] for j in m.set_time), 0)
                 return pyo.Constraint.Skip
@@ -565,9 +563,9 @@ class EWOptimisation:
 
         ### RULES THAT IMPLEMENT THE GAPS IDENTIFICATION.
         def constr_apply_conditions_gaps():
-            apply_gaps_before_after()
-            apply_gaps_during()
-            apply_gaps_gaps()
+            # -------------------------------------- #
+            # FIRST DEFINE THE FUNCTIONS, THEN CALL THEM IN THE END OF THE FUNCTION. OTHERWISE A UnboundLocalError WILL OCCUR.
+            # -------------------------------------- #
 
             ## DIFFERENCE BETWEEN BEFORE AND AFTER IS IN THE SECOND SUMMATION, THAT IS T <=/>= J (BEFORE/AFTER). 
             def apply_gaps_before_after():
@@ -833,6 +831,17 @@ class EWOptimisation:
                         return pyo.Constraint.Skip
                 self.m.gaps_gaps3 = pyo.Constraint(self.m.set_order_suborder, self.m.set_time, rule=rule_gaps_gaps3)
 
+            apply_gaps_before_after()
+            apply_gaps_during()
+            apply_gaps_gaps()
+
+        constr_apply_conditions_for_order_suborder()
+        constr_apply_conditions_for_employee_line()
+        constr_apply_conditions_for_prev_suborder_dependency()
+        constr_apply_conditions_specifc_empl_line_for_order_suborder()
+        constr_apply_conditions_planning()
+        constr_apply_conditions_gaps()
+
     #FIXME: MAKE A CORRECT OBJECTIVE FUNCTION THAT PRIORITIZES THE MOST IMPORTANT ORDERS.
     def _create_pyomo_objective(self):
         """Creates the pyomo model that optimizes the production planning for EW. \n
@@ -895,15 +904,16 @@ class EWOptimisation:
             output: Output of the solver.
         """
         def _solution_to_dataframe(solution: pyo.Var, store_solution_df: bool = True):
-            # solution_values = {(i, j, k): self.m.var_alloc[i, j, k].value for (i, j, k) in self.m.set_alloc_index}
-            solution_dict = {i: solution[i].value for i in solution}
+            solution_dict = {(i, j, k): self.m.var_alloc[i, j, k].value for (i, j, k) in self.m.var_alloc}
+            #solution_dict = {i: solution[i].value for i in solution}
             
             df = pd.DataFrame(
                 data=solution_dict.values(), 
                 index=solution_dict.keys(), 
-                index_names=['order_suborder', 'time', 'empl_line'], 
-                column_names=['allocation']
+                columns=['allocation']
                 )
+            
+            df.index.names = ['order_suborder', 'time', 'empl_line']
             
             df = df[df != 0.0].dropna()
 
@@ -929,51 +939,12 @@ class EWOptimisation:
 
         # Solve the problem
         results = solver.solve(self.m)
-        ic(results)
+        #ic(results)
         
         ### Obtain a pd.DataFrame version of the solutions.
         self.solution = _solution_to_dataframe(solution=self.m.var_alloc)
         ic(self.solution)
 
-        """
-        def _solution_to_dataframe():
-            ### Turn the results into observable objects
-            solution_values = {(i, j, k): self.m.var_alloc[i, j, k].value for (i, j, k) in self.m.set_alloc_index}
-
-            index_values = [idx for idx in self.m.set_alloc_index]
-            index_names = ['order_suborder', 'time', 'empl_line']
-            column_names = ['order_suborder']
-
-            optimal_df = pd.Series(solution_values.values(), index=pd.MultiIndex.from_tuples(index_values, names=index_names))
-            #optimal_df = optimal_df.groupby(['time', 'order_suborder', 'empl_line'])
-
-            optimal_df = optimal_df[optimal_df != 0] # Only keep rows which have non zero values -> an allocation.
-
-            optimal_df.name = 'allocation'
-            
-            return optimal_df
-        
-        def _variable_to_dataframe(
-                variable: type[pyo.Var],
-                variable_names: Union[str, list[str]] = None
-                ):
-            var_dict = {i: variable[i].value for i in variable}
-
-            df = pd.DataFrame(data=var_dict.values(), index=var_dict.keys())
-            df = df[df != 0.0].dropna()
-
-            if isinstance(variable_names, str):
-                if len(df.columns) == 1:
-                    df.columns = variable_names
-                else:
-                    raise ValueError(f"_variable_to_dataframe() expected variable_names of quantitiy: '{len(df.columns)}', but got only one name: '{variable_names}'")
-            if len(df.columns) == len(variable_names):
-                df.columns = variable_names
-            else:
-                raise ValueError(f"_variable_to_dataframe() expected variable_names of quantitiy: '{len(df.columns)}', but got quantity: '{len(variable_names)}'. The names it got where: '{variable_names}'")
-
-            return df
-        """
         return results
     
     

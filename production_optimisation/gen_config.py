@@ -117,7 +117,7 @@ dfs = {
         read_sheet=False,
         build_df=True
         ),
-    'SolutioinDF': ConfigBaseDataframe(
+    'SolutionDF': ConfigBaseDataframe(
         excelFile=excelFileSolution,
         name_excel_sheet='Planning',
         class_type=SolutionDataframe,
