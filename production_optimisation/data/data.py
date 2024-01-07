@@ -205,6 +205,7 @@ class BaseDataframe:
             ).fillna(self._read_fillna_value)
 
     #FIXME: Create VBA file that communicates with python to indicate whether a file is opened by the user, then the dataframe will not be written to excel until the file is closed. otherwise there will be alot of corrupt files.
+    # Perhaps it is also doable in two steps, that is write to a helper excelfile and import data from helper excelfile into workfile. Can also add a indicator in another sheet that is checked every minute that file is open, if 1 then import new data and change to 0. then if a new solution is uploaded change back to 1.
     def write_Dataframe_toExcel(self):
         """Write the dataframe to excel. 
         \n Validates whether the name of the excelsheet can be found.
@@ -233,7 +234,7 @@ class BaseDataframe:
         ic(f'Dataframe ({self._name_Dataframe}) written to ExcelFile in sheet ({self._name_ExcelSheet}) correctly.')
 
     ### DATA VALIDATION.
-    #FIXME: Add data validation for missing data. Same for other dataframes that have index sets as input, are they the correct format?
+    #FIXME: Add data validation for missing data. Same for other dataframes that have index sets as input, are they the correct format? 
     def validate_data(self):
         pass
 

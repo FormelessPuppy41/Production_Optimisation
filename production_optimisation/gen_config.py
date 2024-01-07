@@ -19,6 +19,9 @@ from data.data import (
     SolutionDataframe
     )
 
+time_limit = 60
+old_planning_limit = '21-08-2023 14:00:00' # Until which point should the old planning be used. Also, format is important, see the format in the oldplanning constraint.
+
 
 @dataclass
 class ConfigBaseDataframe:

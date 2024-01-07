@@ -8,7 +8,7 @@ from icecream import ic
 
 from typing import Union
 
-from general_configuration import dfs, old_planning_limit
+from gen_config import old_planning_limit
 
 from data.data import (
     ManagerDataframes, 
